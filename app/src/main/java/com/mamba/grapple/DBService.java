@@ -33,7 +33,9 @@ import org.json.JSONObject;
 
 import java.net.*; // for URIexception
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 
 public class DBService extends Service implements LocationListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
@@ -45,6 +47,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     private static final long INTERVAL = 10000 * 10;
     private static final long FASTEST_INTERVAL = 10000 * 5;
     private String grappledUser;
+    List<MessageObject> conversation;
     LocationRequest mLocationRequest;
     GoogleApiClient mGoogleApiClient;
     Location mCurrentLocation;
@@ -73,6 +76,8 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
+
+        conversation = new ArrayList<MessageObject>();
 
 
     }
@@ -141,6 +146,32 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     private void clientBroadcast(Intent intent){
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
+
+
+    /****************************************************************************** Chat *********************************************************************/
+
+    public void storeConversation(List<MessageObject> convo){
+       conversation = convo;
+    }
+
+    public void newConvo(){
+       conversation = new ArrayList<MessageObject>();
+    }
+
+    public void addMessage(MessageObject msg){
+       Log.v("Storing Message", msg+"");
+       conversation.add(msg);
+    }
+
+
+    public List<MessageObject> retrieveConvo(){
+       return conversation;
+    }
+
+
+
+
+
 
     /****************************************************************************** User Session Management *********************************************************************/
     // gets the latest session from activity, also gets updated current user data
@@ -292,7 +323,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 String senderName = data.getString("senderName");
                 Boolean isSelf  = senderID.equals(currentUser.getId());
                 LocationObject location = null;
-                Log.v("Message Received" , message );
+                Log.v("Message Received" , message);
 
 
                 // check if location message
@@ -300,8 +331,8 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                     location = new LocationObject(Double.parseDouble(data.getString("lat")), Double.parseDouble(data.getString("lon")));
                 }
 
-
                 MessageObject messageObject = new MessageObject(senderName, message, senderID, recipID, isSelf, location);
+                addMessage(messageObject);
 
                 // broadcast to chat
                 Intent intent = new Intent("chatReceiver");

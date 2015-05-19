@@ -27,15 +27,18 @@ import com.google.android.gms.maps.model.MarkerOptions;
  */
 public class MapDialog extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
     private GoogleMap meetMap;
-    private UserObject tutor;
+    private UserObject otherUser;   // other person being connected to
     private Location mLastLocation;
     private GoogleApiClient mGoogleApiClient;
     private MapFragment mapFragment;
 
     // received from Intent
-    private LocationObject meetingPoint;
-    private double tutorLat;
-    private double tutorLon;
+    private LocationObject meetingPoint; // the suggested meeting location
+    private boolean isSelf = false; // is owner of the message that this dialog was launched from
+
+    // tutor coordinates
+    private double otherUserLat;
+    private double otherUserLon;
 
     // UI elements
     Button acceptBtn;
@@ -63,9 +66,10 @@ public class MapDialog extends FragmentActivity implements OnMapReadyCallback, G
 
         if(extras != null){
             meetingPoint = extras.getParcelable("meetingPoint");
-            tutor = extras.getParcelable("tutor");
-            tutorLat = tutor.getLatitude();
-            tutorLon = tutor.getLongitude();
+            otherUser = extras.getParcelable("otherUser");
+            isSelf = extras.getBoolean("isSelf");
+            otherUserLat = otherUser.getLatitude();
+            otherUserLon = otherUser.getLongitude();
         }
 
 
@@ -73,13 +77,11 @@ public class MapDialog extends FragmentActivity implements OnMapReadyCallback, G
         acceptBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // send the data to the tutor view and finish
+                // send the data to the meetup view and finish
                 Intent intent = new Intent(MapDialog.this, Meetup.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
                 intent.putExtra("meetingPoint", meetingPoint);
                 startActivity(intent);
                 finish();
-
             }
         });
 
@@ -91,6 +93,12 @@ public class MapDialog extends FragmentActivity implements OnMapReadyCallback, G
             }
         });
 
+        // if currentUser sent this message then hide the buttons
+//        if(isSelf){
+//            acceptBtn.setVisibility(View.GONE);
+//            declineBtn.setVisibility(View.GONE);
+//        }
+
 
 
     }
@@ -100,14 +108,14 @@ public class MapDialog extends FragmentActivity implements OnMapReadyCallback, G
     @Override
     public void onMapReady(GoogleMap map){
         Log.v("Google Map Ready", "Adding tutor marker");
-        LatLng tutorLoc = new LatLng(tutorLat, tutorLon);
+        LatLng tutorLoc = new LatLng(otherUserLat, otherUserLon);
         LatLng meetPoint = new LatLng(meetingPoint.lat, meetingPoint.lon);
         int zoom;
         meetMap = map;
         map.setMyLocationEnabled(true);
         Marker tutorMarker = map.addMarker(new MarkerOptions()
                 .position(tutorLoc)
-                .title("Tutor")
+                .title(otherUser.firstName())
                 .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
 
         Marker meetMarker = map.addMarker(new MarkerOptions()
@@ -125,8 +133,9 @@ public class MapDialog extends FragmentActivity implements OnMapReadyCallback, G
 //                    .title("You")
 //                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
 
-            Double meetDistance =  Double.parseDouble(tutor.getDistance(userLoc));
+            Double meetDistance =  Double.parseDouble(otherUser.getDistance(userLoc));
 
+            // if the distance is under a mile zoom 14, otherwise do 13
             zoom = (meetDistance <= 1) ? 14 : 13;
 
             map.moveCamera( CameraUpdateFactory.newLatLngZoom( meetPoint , zoom) );

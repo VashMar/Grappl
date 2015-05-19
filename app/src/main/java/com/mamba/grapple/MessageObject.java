@@ -12,23 +12,18 @@ public class MessageObject implements Parcelable {
     private String senderID, recipID;
 
     private boolean isSelf;
-    private boolean isLocation = false;
     private LocationObject location;
 
 
-    public MessageObject(String senderName, String message, String senderID, String recipID,  boolean isSelf, LocationObject loc) {
+    public MessageObject(String senderName, String message, String senderID, String recipID,  boolean isSelf, LocationObject loc){
         this.senderName = senderName;
         this.message = message;
         this.isSelf = isSelf;
         this.senderID = senderID;
         this.recipID = recipID;
-
-        //if the message is a location message
-        if(loc != null){
-            this.isLocation = true;
-            location = loc;
-        }
+        this.location = loc;
     }
+
 
     public String getFromName() {
         return senderName;
@@ -50,7 +45,9 @@ public class MessageObject implements Parcelable {
         return isSelf;
     }
 
-    public boolean isLocation(){ return isLocation; }
+    public boolean isLocation(){
+        return (this.location != null) ? true  : false ;
+    }
 
     public LocationObject getLocation(){
         return location;
@@ -62,7 +59,7 @@ public class MessageObject implements Parcelable {
 
     protected MessageObject(Parcel in){
         senderName = in.readString();
-        senderID= in.readString();
+        senderID = in.readString();
         recipID = in.readString();
         isSelf = in.readByte() != 0;
         recipID = in.readString();
@@ -82,7 +79,24 @@ public class MessageObject implements Parcelable {
         dest.writeString(recipID);
         dest.writeString(message);
         dest.writeByte((byte) (isSelf ? 1 : 0));
-        dest.writeValue(location);
+
+        if(location != null) {
+            dest.writeValue(location);
+        }
     }
 
-   }
+    @SuppressWarnings("unused")
+    public static final Parcelable.Creator<MessageObject> CREATOR = new Parcelable.Creator<MessageObject>() {
+        @Override
+        public MessageObject createFromParcel(Parcel in) {
+            return new MessageObject(in);
+        }
+
+        @Override
+        public MessageObject[] newArray(int size) {
+            return new MessageObject[size];
+        }
+    };
+
+
+ }

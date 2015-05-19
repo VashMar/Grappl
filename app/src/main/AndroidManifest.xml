@@ -83,7 +83,8 @@
         <activity
             android:name=".Meetup"
             android:exported="true"
-            android:label="@string/title_activity_tutor" />
+            android:label="@string/title_activity_meetup"
+            android:launchMode="singleTask"/>
         <activity
             android:name=".PreSession"
             android:exported="true"
@@ -99,6 +100,7 @@
         <activity
             android:name=".Chat"
             android:exported="true"
+            android:launchMode="singleTask"
             android:label="@string/title_activity_chat" />
         <activity
             android:name=".AddressList"

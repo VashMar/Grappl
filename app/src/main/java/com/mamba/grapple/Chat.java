@@ -5,13 +5,11 @@ import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -23,13 +21,9 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.places.Places;
-
-
 
 
 import java.util.ArrayList;
@@ -67,7 +61,7 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
 //    ImageButton locationList;
 
 
-    private boolean seen = false;
+    private boolean grappled = false;
 
     LoginManager session;
 
@@ -84,8 +78,17 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
-        }
 
+            // create a new conversation if this is the first time
+            if(!grappled){
+               mService.newConvo();
+            }
+            messageList = mService.retrieveConvo();
+            adapter = new MessagesAdapter(Chat.this,messageList);
+            messagesContainer.setAdapter(adapter);
+            adapter.notifyDataSetChanged();
+
+        }
         public void onServiceDisconnected(ComponentName arg0) {
             mBound = false;
         }
@@ -107,8 +110,6 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
 
                 // if there's a new message add it to the list and display
                 if(responseType == "message"){
-                    MessageObject msg = extras.getParcelable("msg");
-                    messageList.add(msg);
                     adapter.notifyDataSetChanged();
                 }
             }
@@ -121,6 +122,8 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tutorchat);
+
+        Log.v("Chat Activity", "Created");
 
         retrieveInfo(); // gets info about other chat member
         dummyPopulate();
@@ -140,13 +143,6 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
 
         sendButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
-
-                // display locally
-
-                // create message object with params: first name, message text, senderID, recipID, isSelf, loc
-//                MessageObject msg = new MessageObject(currentUser.firstName(), msgText , currentUser.getId(), recipient.getId(), true, null);
-//                messageList.add(msg);
-//                adapter.notifyDataSetChanged();
 
                 // get message from input field
                 String msgText = chatInput.getText().toString();
@@ -169,13 +165,6 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
         });
 
 
-
-
-        messageList = new ArrayList<MessageObject>();
-        adapter = new MessagesAdapter(this, messageList);
-        messagesContainer.setAdapter(adapter);
-
-
         messagesContainer.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
@@ -186,10 +175,10 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
                 if(message.isLocation()){
                     Intent intent = new Intent(Chat.this, MapDialog.class);
                     intent.putExtra("meetingPoint", message.getLocation());
-                    intent.putExtra("tutor", recipient);
+                    intent.putExtra("isSelf", message.isSelf());
+                    intent.putExtra("otherUser", recipient);
                     startActivity(intent);
                 }
-
             }
         });
 
@@ -207,6 +196,8 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
         Intent intent = new Intent(this, DBService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
+
+
     }
 
 
@@ -219,6 +210,8 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
             unbindService(mConnection);
             mBound = false;
         }
+        //unregister the receiver
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(chatReceiver);
     }
 
 
@@ -238,6 +231,12 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
         super.onDestroy();
     }
 
+    @Override
+    protected void onNewIntent(Intent intent){
+        super.onNewIntent(intent);
+        Log.v("Chat Activity", "New Intent");
+    }
+
 
     public void retrieveInfo(){
         // get the connected users data
@@ -246,6 +245,13 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
 
             recipient = extras.getParcelable("user");
             getActionBar().setTitle(recipient.getName());
+
+            // mark that grapple already happened
+            if(extras.containsKey("meetingPoint")){
+                grappled = true;
+            }
+
+
         }
     }
 
@@ -298,19 +304,15 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
         dialog.setView(view);
         final AlertDialog alert = dialog.show();
 
+        // on location suggest 
         suggestBtn.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
+                // close the dialog
                 alert.cancel();
                 if(selectedLocation != null){
-
+                    // emit the location message
                     mService.sendMessage(currentUser.firstName(), currentUser.getId(), recipient.getId(), selectedLocation.getAddress(), selectedLocation.lat, selectedLocation.lon);
-
-                      // client side update
-//                    MessageObject msg = new MessageObject(currentUser.firstName(), selectedLocation.getAddress(), currentUser.getId(),  recipient.getId(), true,  selectedLocation);
-//                    messageList.add(msg);
-//                    adapter.notifyDataSetChanged();
-
                 }
             }
         });

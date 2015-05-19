@@ -40,18 +40,9 @@ public class LocationObject implements Parcelable {
     public LocationObject(String name, String address, Context context) {
         this.name =  name;
         this.address = address;
-
-
     }
 
 
-
-    protected LocationObject(Parcel in) {
-        lat = in.readDouble();
-        lon = in.readDouble();
-        name = in.readString();
-        address = in.readString();
-    }
 
     public String getName(){
         return name;
@@ -61,18 +52,6 @@ public class LocationObject implements Parcelable {
         return address;
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags){
-        dest.writeDouble(lat);
-        dest.writeDouble(lon);
-        dest.writeString(name);
-        dest.writeString(address);
-    }
 
 
     public void geoCode(Context context){
@@ -92,6 +71,27 @@ public class LocationObject implements Parcelable {
         }
 
     }
+
+    protected LocationObject(Parcel in) {
+        lat = in.readDouble();
+        lon = in.readDouble();
+        name = in.readString();
+        address = in.readString();
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags){
+        dest.writeDouble(lat);
+        dest.writeDouble(lon);
+        dest.writeString(name);
+        dest.writeString(address);
+    }
+
 
 
 

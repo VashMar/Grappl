@@ -95,7 +95,6 @@ public class InSession extends Activity {
                 intent.putExtra("tutor", tutor);
                 startActivity(intent);
                 finish();
-
             }
         });
 
