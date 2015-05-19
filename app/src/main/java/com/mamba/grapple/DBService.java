@@ -46,7 +46,8 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     private final Gson gson = new Gson();
     private static final long INTERVAL = 10000 * 10;
     private static final long FASTEST_INTERVAL = 10000 * 5;
-    private String grappledUser;
+    private boolean inGrapple = false;      // flag goes up when user is in a grapple
+
     List<MessageObject> conversation;
     LocationRequest mLocationRequest;
     GoogleApiClient mGoogleApiClient;
@@ -136,17 +137,26 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
     }
 
-    public void setActivity(Activity activity){
-        boundActivity = activity;
-    }
-
-
 
     // sends updated socket data to UI
     private void clientBroadcast(Intent intent){
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
+
+    /*********************************************************** Grapple State Management **************************************************/
+
+    private void setGrapple(){
+       inGrapple = true;
+    }
+
+    public boolean grappleState(){
+       return inGrapple;
+    }
+
+    public void endGrapple(){
+       inGrapple = false;
+    }
 
     /****************************************************************************** Chat *********************************************************************/
 
@@ -222,6 +232,9 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     // initiates the grappling of a tutor
     public void startGrapple(String id) {
+        Log.v("Service", "Setting grapple state to true");
+        setGrapple(); // set grapple state flag
+
         // serialize tutor.id, lat, and long
         Location loc = getLocation();
         double lat = loc.getLatitude();

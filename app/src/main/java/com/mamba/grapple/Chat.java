@@ -14,6 +14,8 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -32,12 +34,7 @@ import java.util.List;
 /**
  * Created by vash on 4/8/15.
  */
-public class Chat extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
-
-
-
-    private LocationObject presetLoc;
-    private BroadcastReceiver mBroadcastReceiver;
+public class Chat extends Activity  {
 
     private MessagesAdapter adapter;
     private List<MessageObject> messageList;
@@ -247,7 +244,7 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
             getActionBar().setTitle(recipient.getName());
 
             // mark that grapple already happened
-            if(extras.containsKey("meetingPoint")){
+            if(extras.containsKey("beenGrappled")){
                 grappled = true;
             }
 
@@ -304,7 +301,7 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
         dialog.setView(view);
         final AlertDialog alert = dialog.show();
 
-        // on location suggest 
+        // on location suggest
         suggestBtn.setOnClickListener(new View.OnClickListener(){
             @Override
             public void onClick(View v) {
@@ -348,6 +345,44 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
         thread.start();
 
     }
+
+
+
+    /**************************************************************************** Options Menu Management ******************************************************************/
+
+
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_grapple, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        switch (item.getItemId()) {
+            case R.id.action_endGrapple:
+                mService.endGrapple();
+                finish();
+                return true;
+            case R.id.action_settings:
+                //TODO
+            case R.id.action_signout:
+                Intent myIntent = new Intent(Chat.this, SignIn.class);
+                myIntent.putExtra("destroy_token", "true");
+                startActivity(myIntent);
+                return true;
+
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+
 
 //
 //    public void sendDummyMsg(){
@@ -396,19 +431,5 @@ public class Chat extends Activity implements GoogleApiClient.ConnectionCallback
 
 
 
-    @Override
-    public void onConnected(Bundle bundle) {
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-
-    }
 
 }

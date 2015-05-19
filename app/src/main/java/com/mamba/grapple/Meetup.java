@@ -1,8 +1,10 @@
 package com.mamba.grapple;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -56,7 +58,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Meetup extends FragmentActivity implements OnMapReadyCallback, ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
+public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
     private MapFragment mapFragment;
     private GoogleMap gMap;
@@ -102,22 +104,82 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback, Conn
         }
     };
 
+    // callback for service connection
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            DBService.LocalBinder binder = (DBService.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+
+            mLastLocation = mService.getLocation();
+
+
+            // render map if it doesn't exist
+            if(gMap == null){
+               mapFragment.getMapAsync(Meetup.this);
+            }
+
+
+            // if the user has been grappled, adjust view accordingly
+            if(mService.grappleState()){
+
+                invalidateOptionsMenu();
+
+                // grab dynamic layout items
+                Button grappleButton = (Button) findViewById(R.id.grappleButton);
+                ImageButton chatButton = (ImageButton) findViewById(R.id.chatButton);
+
+                // hide the grapple button and show the session/chat buttons
+                grappleButton.setVisibility(View.GONE);
+                chatButton.setVisibility(View.VISIBLE);
+
+
+                // change to session infowindow
+                iwadapter = new SessionWindowAdapter();
+                gMap.setInfoWindowAdapter(iwadapter);
+                iwadapter.getInfoWindow(tutorMarker);
+                tutorMarker.showInfoWindow();
+
+
+                gMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+                    @Override
+                    public void onInfoWindowClick(Marker marker) {
+                        Intent intent = new Intent(Meetup.this, InSession.class);
+                        intent.putExtra("otherUser", otherUser);
+                        startActivity(intent);
+                        finish();
+                    }
+                });
+
+
+                chatButton.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                        Intent intent = new Intent(Meetup.this, Chat.class);
+                        intent.putExtra("user", otherUser);
+                        intent.putExtra("beenGrappled", true);
+                        startActivity(intent);
+                    }
+                });
+
+            }
+        }
+
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tutorselect);
 
-
-
         session = new LoginManager(getApplicationContext());
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-        String locationProvider = LocationManager.NETWORK_PROVIDER;
-        mLastLocation = locationManager.getLastKnownLocation(locationProvider);
 
 
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+
 
 
         // get the tutor data
@@ -158,6 +220,11 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback, Conn
         super.onDestroy();
     }
 
+    @Override
+    public void onBackPressed(){
+        endGrapplePrompt();
+    }
+
     // Our handler for received Intents. This will be called whenever an Intent
     // with an action named "custom-event-name" is broadcasted.
     private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
@@ -189,41 +256,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback, Conn
                 addRoute(meetingPoint.lat, meetingPoint.lon);
 
 
-                // grab dynamic layout items
-                Button grappleButton = (Button) findViewById(R.id.grappleButton);
-                ImageButton chatButton = (ImageButton) findViewById(R.id.chatButton);
 
-                // hide the grapple button and show the session/chat buttons
-                grappleButton.setVisibility(View.GONE);
-                chatButton.setVisibility(View.VISIBLE);
-
-
-                // change to session infowindow
-                iwadapter = new SessionWindowAdapter();
-                gMap.setInfoWindowAdapter(iwadapter);
-                iwadapter.getInfoWindow(tutorMarker);
-                tutorMarker.showInfoWindow();
-
-
-                gMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
-                    @Override
-                    public void onInfoWindowClick(Marker marker) {
-                        Intent intent = new Intent(Meetup.this, InSession.class);
-                        intent.putExtra("otherUser", otherUser);
-                        startActivity(intent);
-                        finish();
-                    }
-                });
-
-
-                chatButton.setOnClickListener(new View.OnClickListener() {
-                    public void onClick(View v) {
-                        Intent intent = new Intent(Meetup.this, Chat.class);
-                        intent.putExtra("user", otherUser);
-                        intent.putExtra("meetingPoint", meetingPoint);  // if the meeting point is added we know the tutor has been grappled
-                        startActivity(intent);
-                    }
-                });
 
                 new Handler().postDelayed(new Runnable() {
                     @Override
@@ -235,6 +268,52 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback, Conn
             }
         }
     }
+
+    @Override
+    public void onMapReady(GoogleMap map) {
+        Log.v("Google Map Ready", "Adding tutor marker");
+        LatLng tutorLoc = new LatLng(otherUser.getLatitude(), otherUser.getLongitude());
+        int zoom;
+        gMap = map;
+        map.setMyLocationEnabled(true);
+        tutorMarker = gMap.addMarker(new MarkerOptions()
+                .position(tutorLoc)
+                .title("Tutor")
+                .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
+
+        iwadapter = new TutorWindowAdapter();
+        gMap.setInfoWindowAdapter(iwadapter);
+        iwadapter.getInfoWindow(tutorMarker);
+
+        if (mLastLocation != null) {
+            LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+
+            Log.v("mLastLocation Exists", "Adding user marker");
+
+            Double distance = Double.parseDouble(otherUser.getDistance(userLoc));
+
+            zoom = (distance < 1) ? 14 : 13;
+
+            CameraPosition cameraPosition = new CameraPosition.Builder()
+                    .target(tutorLoc).zoom(zoom).build();
+
+            gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), new GoogleMap.CancelableCallback() {
+                @Override
+                public void onFinish() {
+                    tutorMarker.showInfoWindow();
+                }
+
+                @Override
+                public void onCancel() {
+
+                }
+            });
+
+        }
+
+    }
+
+
 
     // enters the chat with the tutor
     public void grappleTutor(View view){
@@ -287,17 +366,46 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback, Conn
         }
     }
 
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            DBService.LocalBinder binder = (DBService.LocalBinder) service;
-            mService = binder.getService();
-            mBound = true;
-        }
+    // launches alert dialog signalling grapple will end
+    private void endGrapplePrompt(){
+        new AlertDialog.Builder(this)
+                .setTitle("Stop Grapple?")
+                .setMessage("Are you sure you want to ungrapple " + otherUser.firstName() + " ?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int which) {
+                        // continue with ending broadcast
+                        mService.endGrapple();
+                        finish();
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // do nothing
 
-        public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+
+
+    /**************************************************************************** Options Menu Management ******************************************************************/
+
+
+    // prepares new option menu on state change
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        menu.clear();
+        if(mService.grappleState()) {
+            Log.v("Meetup", "Adding menu for grapple state");
+            getMenuInflater().inflate(R.menu.menu_grapple, menu);
+        }else{
+            getMenuInflater().inflate(R.menu.menu_account, menu);
         }
-    };
+        return super.onPrepareOptionsMenu(menu);
+    }
+
 
 
     @Override
@@ -321,6 +429,10 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback, Conn
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         switch (item.getItemId()) {
+            case R.id.action_endGrapple:
+                mService.endGrapple();
+                finish();
+                return true;
             case R.id.action_settings:
                 //TODO
             case R.id.action_signout:
@@ -328,99 +440,15 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback, Conn
                 myIntent.putExtra("destroy_token", "true");
                 startActivity(myIntent);
                 return true;
+
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    @Override
-    public void onMapReady(GoogleMap map) {
-        Log.v("Google Map Ready", "Adding tutor marker");
-        LatLng tutorLoc = new LatLng(otherUser.getLatitude(), otherUser.getLongitude());
-        int zoom;
-        gMap = map;
-        map.setMyLocationEnabled(true);
-        tutorMarker = gMap.addMarker(new MarkerOptions()
-                .position(tutorLoc)
-                .title("Tutor")
-                .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
-
-        iwadapter = new TutorWindowAdapter();
-        gMap.setInfoWindowAdapter(iwadapter);
-        iwadapter.getInfoWindow(tutorMarker);
-
-        if (mLastLocation != null) {
-            LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-
-            Log.v("mLastLocation Exists", "Adding user marker");
-
-            Double distance = Double.parseDouble(otherUser.getDistance(userLoc));
-
-            zoom = (distance < 1) ? 14 : 13;
-
-            CameraPosition cameraPosition = new CameraPosition.Builder()
-                    .target(tutorLoc).zoom(zoom).build();
-
-            gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), new GoogleMap.CancelableCallback() {
-                @Override
-                public void onFinish() {
-                    tutorMarker.showInfoWindow();
-                }
-
-                @Override
-                public void onCancel() {
-
-                }
-            });
-
-        }
-
-    }
 
 
-    @Override
-    public void onConnected(Bundle connectionHint) {
-//        // Connected to Google Play services!
-        // The good stuff goes here.
-        Log.v("gConnected", "Connected to google play services");
-        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
-                mGoogleApiClient);
-
-        if (mLastLocation == null) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        }
-
-        Log.v("latitude", String.valueOf(mLastLocation.getLatitude()));
-
-
-
-    }
-
-    @Override
-    public void onConnectionSuspended(int cause) {
-        // The connection has been interrupted.
-        // Disable any UI components that depend on Google APIs
-        // until onConnected() is called.
-        Log.v("fail", "Connection to Google Services Suspended");
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        // This callback is important for handling errors that
-        // may occur while attempting to connect with Google.
-        //
-        // More about this in the next section.
-        Log.v("fail", "Connection to Google Services Failed");
-        Log.v("fail result", result.toString());
-
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        mLastLocation = location;
-
-    }
-
+    /**************************************************************************** Map Route Marking ******************************************************************/
 
     public void addRoute(double meetLat, double meetLong) {
 
