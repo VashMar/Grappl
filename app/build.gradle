@@ -32,5 +32,6 @@ dependencies {
     compile 'com.google.android.gms:play-services-maps:7.0.0'
     compile 'com.google.android.gms:play-services-location:7.0.0'
     compile 'uk.co.chrisjenx:calligraphy:2.0.2'
+    compile 'com.github.lzyzsd:circleprogress:1.1.0@aar'
     compile files('libs/javax.mail.jar')
 }

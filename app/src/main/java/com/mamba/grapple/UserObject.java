@@ -23,7 +23,7 @@ public class UserObject implements Parcelable {
     private int rating;
     private String profilePic;
     private float distance;
-    private boolean tutoring;
+    private boolean tutoring = false;
     private LocationObject location;
     private TutorSession session;
 
@@ -150,6 +150,8 @@ public class UserObject implements Parcelable {
         return this.location.lon;
     }
 
+    public boolean isTutor(){ return this.tutoring; }
+
 
    /************************************  Helpers   ***************************************************************************/
 
@@ -188,6 +190,7 @@ public class UserObject implements Parcelable {
         distance = in.readFloat();
         location = (LocationObject) in.readValue(LocationObject.class.getClassLoader());
         session = (TutorSession) in.readValue(TutorSession.class.getClassLoader());
+        tutoring = in.readByte() != 0;
     }
 
     @Override
@@ -206,6 +209,7 @@ public class UserObject implements Parcelable {
         dest.writeFloat(distance);
         dest.writeValue(location);
         dest.writeValue(session);
+        dest.writeByte((byte) (tutoring ? 1 : 0));
 
     }
 

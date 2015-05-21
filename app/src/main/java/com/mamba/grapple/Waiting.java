@@ -64,7 +64,6 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                     chatIntent.putExtra("user", user);
                     startActivity(chatIntent);
                 }
-
             }
         }
     };
@@ -99,6 +98,9 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             mLastLocation = extras.getParcelable("location");
             Log.v("Current user location",  mLastLocation.getLatitude() +  " , " + mLastLocation.getLongitude());
         }
+
+        getActionBar().setTitle("Waiting..");
+
 
         grappleButton = (Button) findViewById(R.id.grappleButton);
         grappleButton.setVisibility(View.GONE);
@@ -219,7 +221,6 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 .strokeWidth(2)
                 .fillColor(Color.parseColor("#500084d3"))
                 .visible(true));
-
     }
 
 

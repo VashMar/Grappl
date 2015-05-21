@@ -140,7 +140,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 iwadapter.getInfoWindow(tutorMarker);
                 tutorMarker.showInfoWindow();
 
-
+                // send otherUser data along
                 gMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
                     @Override
                     public void onInfoWindowClick(Marker marker) {
@@ -318,7 +318,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     // enters the chat with the tutor
     public void grappleTutor(View view){
         Log.v("grappleEvent", "tutor id = " + otherUser.getID());
-        mService.startGrapple(otherUser.getID());
+        mService.startGrapple(otherUser);
         Intent intent = new Intent(this, Chat.class);
         intent.putExtra("user", otherUser);
         startActivity(intent);

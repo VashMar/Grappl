@@ -58,7 +58,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     LoginManager session;
     UserObject currentUser;
-
+    UserObject grappledUser;
 
 
     /****************************************************************************** Service Related Methods  *********************************************************************/
@@ -146,8 +146,10 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     /*********************************************************** Grapple State Management **************************************************/
 
-    private void setGrapple(){
+    private void setGrapple(UserObject user)
+    {
        inGrapple = true;
+        grappledUser = user;
     }
 
     public boolean grappleState(){
@@ -155,7 +157,13 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     }
 
     public void endGrapple(){
-       inGrapple = false;
+        inGrapple = false;
+        grappledUser = null;
+    }
+
+    public UserObject getGrappledUser(){
+        Log.v("Service", "returning grappled user: " + String.valueOf(grappledUser));
+        return grappledUser;
     }
 
     /****************************************************************************** Chat *********************************************************************/
@@ -190,6 +198,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         this.session = session;
         this.currentUser = session.getCurrentUser();
     }
+
 
 
 
@@ -231,14 +240,16 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     }
 
     // initiates the grappling of a tutor
-    public void startGrapple(String id) {
+    public void startGrapple(UserObject user) {
         Log.v("Service", "Setting grapple state to true");
-        setGrapple(); // set grapple state flag
+        setGrapple(user); // set grapple state flag and track user
 
         // serialize tutor.id, lat, and long
         Location loc = getLocation();
         double lat = loc.getLatitude();
         double lon = loc.getLongitude();
+        String id = user.getId();
+
         if(id == null){
             id = session.currentUser.getId();
         }
@@ -338,7 +349,6 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 LocationObject location = null;
                 Log.v("Message Received" , message);
 
-
                 // check if location message
                 if(data.has("lat")  && data.has("lon")){
                     location = new LocationObject(Double.parseDouble(data.getString("lat")), Double.parseDouble(data.getString("lon")));
@@ -403,13 +413,17 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             JSONObject data = (JSONObject) args[0];
 
             try{
-                String grappledUser = data.getString("id");
+                String grappledUserString = data.getString("id");
                 Log.v("Grappled", session.currentUser.getName() + " just got grappled by " + grappledUser);
-                UserObject user = gson.fromJson(grappledUser, UserObject.class);
+                grappledUser = gson.fromJson(grappledUserString, UserObject.class);
+
+                // set grapple state and track user
+                setGrapple(grappledUser);
+
                 // send to the waiting receiver on grapple
                 Intent intent = new Intent("waitingReceiver");
                 intent.putExtra("responseType", "grapple");
-                intent.putExtra("user", user);
+                intent.putExtra("user", grappledUser);
                 clientBroadcast(intent);
             }catch(JSONException e){
                 e.printStackTrace();

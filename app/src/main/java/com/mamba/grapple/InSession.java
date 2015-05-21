@@ -17,6 +17,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.github.lzyzsd.circleprogress.ArcProgress;
 import com.google.android.gms.maps.MapFragment;
 
 import java.util.concurrent.TimeUnit;
@@ -26,11 +27,13 @@ public class InSession extends Activity {
 
     final int MS_IN_MIN = 60000; // ms in a minute
 
-    TextView textViewTime;
+//    TextView textViewTime;
     Button btnPause;
     Button btnStop;
 
-    TutorObject tutor;
+    UserObject otherUser;
+    UserObject currentUser;
+    UserObject tutor;
 
     private SessionCounter timer;
     private long sessionRemaining = MS_IN_MIN * 30;    // set from tutor's set max (default 30 min)
@@ -45,27 +48,69 @@ public class InSession extends Activity {
     DBService mService;
 
 
+    ArcProgress arcProgress;
+
+    private ServiceConnection mConnection = new ServiceConnection(){
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            DBService.LocalBinder binder = (DBService.LocalBinder) service;
+            mService = binder.getService();
+            mService.setSession(session);
+            mBound = true;
+            mLastLocation = mService.getLocation();
+
+            otherUser = mService.getGrappledUser();
+            currentUser = session.getCurrentUser();
+
+            // find whos the tutor
+            tutor =  (otherUser.isTutor()) ?  otherUser : currentUser;
+
+
+            int hr = tutor.sessionLength()/60;
+            int min = tutor.sessionLength()%60;
+
+            if(hr > 0 && min > 0){
+                arcProgress.setBottomText("Session: " + hr + " hour " + min + " min" );
+            }else if(hr > 0){
+                arcProgress.setBottomText("Session: " + hr + " hour " );
+            }else{
+                arcProgress.setBottomText("Session: " + min + " min" );
+            }
+
+
+            // convert to long in ms
+            long sessionLength = MS_IN_MIN * (long) otherUser.sessionLength();
+
+            if (sessionLength > sessionRemaining) {
+                sessionRemaining = sessionLength;
+            }
+
+
+
+            startCountdown();
+
+
+        }
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_insession);
         getActionBar().show();
-        textViewTime = (TextView) findViewById(R.id.textViewTime);
+
+        // get the latest session data
+        session = new LoginManager(getApplicationContext());
+
         btnStop = (Button) findViewById(R.id.endBtn);
         btnPause = (Button) findViewById(R.id.pauseBtn);
+        arcProgress = (ArcProgress) findViewById(R.id.arcProgress);
 
-        Bundle extras = getIntent().getExtras();
-        if (extras != null && extras.containsKey("tutor")) {
-            tutor = extras.getParcelable("tutor");
-
-            // convert to long in ms
-            long sessionLength = MS_IN_MIN * (long) tutor.sessionLength();
-            if (sessionLength > sessionRemaining) {
-                sessionRemaining = sessionLength;
-            }
-        }
-
-        startCountdown();
 
         btnPause.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -92,24 +137,24 @@ public class InSession extends Activity {
 
                 // go to receipt
                 Intent intent = new Intent(InSession.this, PostSession.class);
-                intent.putExtra("tutor", tutor);
+                intent.putExtra("tutor", otherUser);
                 startActivity(intent);
                 finish();
             }
         });
 
-        session = new LoginManager(getApplicationContext());
+
     }
 
     public void onResume() {
         super.onResume();
-        if (session.isLoggedIn()) {
+        if (session.isLoggedIn()){
             createService();
         }
     }
 
     @Override
-    protected void onStop() {
+    protected void onStop(){
         super.onStop();
         // Unbind from the service
         if (mBound) {
@@ -118,14 +163,14 @@ public class InSession extends Activity {
         }
     }
 
-    public void createService() {
+    public void createService(){
         Log.v("Waiting Page", "Creating Service..");
         startService(new Intent(this, DBService.class));
         bindService(new Intent(this, DBService.class), mConnection, Context.BIND_AUTO_CREATE);
         Log.v("Service Bound", "Results bound to new service");
     }
 
-    private void startCountdown() {
+    private void startCountdown(){
         timer = new SessionCounter(sessionRemaining, 1000);
         timer.start();
     }
@@ -155,14 +200,13 @@ public class InSession extends Activity {
     private class SessionCounter extends CountDownTimer {
 
         long millis;
-
         public SessionCounter(long millisInFuture, long countDownInterval) {
             super(millisInFuture, countDownInterval);
         }
 
         @Override
         public void onFinish() {
-            textViewTime.setText("Completed.");
+//            textViewTime.setText("Completed.");
         }
 
         @Override
@@ -173,24 +217,13 @@ public class InSession extends Activity {
                     TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
                     TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
             System.out.println(hms);
-            textViewTime.setText(hms);
+//            textViewTime.setText(hms);
         }
 
 
     }
 
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            DBService.LocalBinder binder = (DBService.LocalBinder) service;
-            mService = binder.getService();
-            mService.setSession(session);
-            mBound = true;
-            mLastLocation = mService.getLocation();
-        }
-        public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
-        }
-    };
+
 
 }
 
