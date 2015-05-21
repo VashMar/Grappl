@@ -152,6 +152,14 @@ public class UserObject implements Parcelable {
 
     public boolean isTutor(){ return this.tutoring; }
 
+    public boolean hasProfilePic(){
+        if(!this.profilePic.isEmpty() && this.profilePic != null){
+            return true;
+        }
+
+        return false;
+    }
+
 
    /************************************  Helpers   ***************************************************************************/
 

@@ -77,7 +77,7 @@
         android:layout_centerHorizontal="true"
         android:layout_width="285dp"
         android:layout_height="285dp"
-        custom:arc_progress="25"
+        custom:arc_progress="0"
         custom:arc_bottom_text="Session: 1 hour"
         custom:arc_unfinished_color="@color/theme"
         custom:arc_finished_color="@color/accent_blue"

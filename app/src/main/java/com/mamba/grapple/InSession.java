@@ -38,6 +38,8 @@ public class InSession extends Activity {
     private SessionCounter timer;
     private long sessionRemaining = MS_IN_MIN * 30;    // set from tutor's set max (default 30 min)
     private boolean sessionPaused = false;
+    private long sessionLengthMS;
+    int sessionLength; // length of entire session
 
     LoginManager session;
 
@@ -46,7 +48,6 @@ public class InSession extends Activity {
     // service related variables
     private boolean mBound = false;
     DBService mService;
-
 
     ArcProgress arcProgress;
 
@@ -63,11 +64,12 @@ public class InSession extends Activity {
 
             // find whos the tutor
             tutor =  (otherUser.isTutor()) ?  otherUser : currentUser;
+            sessionLength = tutor.sessionLength();
+            // get the session time in hours and minutes
+            int hr = sessionLength/60;
+            int min =sessionLength%60;
 
-
-            int hr = tutor.sessionLength()/60;
-            int min = tutor.sessionLength()%60;
-
+            // display time accordingly
             if(hr > 0 && min > 0){
                 arcProgress.setBottomText("Session: " + hr + " hour " + min + " min" );
             }else if(hr > 0){
@@ -78,10 +80,11 @@ public class InSession extends Activity {
 
 
             // convert to long in ms
-            long sessionLength = MS_IN_MIN * (long) otherUser.sessionLength();
+             sessionLengthMS = MS_IN_MIN * (long) sessionLength;
 
-            if (sessionLength > sessionRemaining) {
-                sessionRemaining = sessionLength;
+            // set our session remaining to tutors availability time (in ms)
+            if (sessionLengthMS > sessionRemaining) {
+                sessionRemaining = sessionLengthMS;
             }
 
 
@@ -171,7 +174,7 @@ public class InSession extends Activity {
     }
 
     private void startCountdown(){
-        timer = new SessionCounter(sessionRemaining, 1000);
+        timer = new SessionCounter(sessionRemaining, 10000);
         timer.start();
     }
 
@@ -199,7 +202,6 @@ public class InSession extends Activity {
 
     private class SessionCounter extends CountDownTimer {
 
-        long millis;
         public SessionCounter(long millisInFuture, long countDownInterval) {
             super(millisInFuture, countDownInterval);
         }
@@ -211,13 +213,17 @@ public class InSession extends Activity {
 
         @Override
         public void onTick(long millisUntilFinished) {
+            Log.v("Timer Tick", "Session Remaining: " + sessionRemaining + ", Session Length: " + sessionLengthMS);
+
             sessionRemaining = millisUntilFinished;
-            millis = millisUntilFinished;
-            String hms = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
-                    TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
-                    TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
-            System.out.println(hms);
+//            millis = millisUntilFinished;
+//            String hms = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
+//                    TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+//                    TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
+//            System.out.println(hms);
 //            textViewTime.setText(hms);
+              int percentage = (int)( 100 * (sessionLengthMS - sessionRemaining)/sessionLengthMS);
+              arcProgress.setProgress(percentage);
         }
 
 
