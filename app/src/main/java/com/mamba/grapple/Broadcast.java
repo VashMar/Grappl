@@ -106,26 +106,26 @@ public class Broadcast extends Fragment {
             }
         });
 
-        //change travel distance
-        distView = (TextView) getView().findViewById(R.id.travelDistance);
-        seekdist = (SeekBar) getView().findViewById(R.id.seekDistance);
-
-        seekdist.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                distance = progress;
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                distView.setText("Travel Distance: " + distance + " mi");
-            }
-        });
+//        //change travel distance
+//        distView = (TextView) getView().findViewById(R.id.travelDistance);
+//        seekdist = (SeekBar) getView().findViewById(R.id.seekDistance);
+//
+//        seekdist.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+//            @Override
+//            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+//                distance = progress;
+//            }
+//
+//            @Override
+//            public void onStartTrackingTouch(SeekBar seekBar) {
+//
+//            }
+//
+//            @Override
+//            public void onStopTrackingTouch(SeekBar seekBar) {
+//                distView.setText("Travel Distance: " + distance + " mi");
+//            }
+//        });
     }
 
     public void startBroadcast(){

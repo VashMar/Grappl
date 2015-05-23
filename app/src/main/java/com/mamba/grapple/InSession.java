@@ -43,7 +43,6 @@ public class InSession extends Activity {
 
     LoginManager session;
 
-    private Location mLastLocation;
 
     // service related variables
     private boolean mBound = false;
@@ -57,7 +56,7 @@ public class InSession extends Activity {
             mService = binder.getService();
             mService.setSession(session);
             mBound = true;
-            mLastLocation = mService.getLocation();
+
 
             otherUser = mService.getGrappledUser();
             currentUser = session.getCurrentUser();
@@ -216,14 +215,8 @@ public class InSession extends Activity {
             Log.v("Timer Tick", "Session Remaining: " + sessionRemaining + ", Session Length: " + sessionLengthMS);
 
             sessionRemaining = millisUntilFinished;
-//            millis = millisUntilFinished;
-//            String hms = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
-//                    TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
-//                    TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
-//            System.out.println(hms);
-//            textViewTime.setText(hms);
-              int percentage = (int)( 100 * (sessionLengthMS - sessionRemaining)/sessionLengthMS);
-              arcProgress.setProgress(percentage);
+            int percentage = (int)( 100 * (sessionLengthMS - sessionRemaining)/sessionLengthMS);
+            arcProgress.setProgress(percentage);
         }
 
 

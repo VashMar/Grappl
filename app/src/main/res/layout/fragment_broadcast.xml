@@ -53,9 +53,49 @@
             android:text="Computer Science 302, Physics 202 "
             android:layout_gravity="center_vertical"
             android:textStyle="italic"
-            android:paddingLeft="3dp"
+            android:paddingLeft="10dp"
             android:paddingRight="10dp"
         />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Meetup spot(s):"
+            android:id="@+id/selectedMeeting"
+            android:layout_centerHorizontal="true"
+            android:layout_gravity="center_horizontal|top"
+            android:textSize="20dp"
+            android:layout_marginTop="15dp"
+            android:layout_below="@+id/courseContainer"
+            />
+
+        <LinearLayout
+            android:id="@+id/locationContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/selectedMeeting"
+
+            android:layout_marginTop="10dp"
+            android:layout_centerHorizontal="true"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:src="@drawable/meetup"/>
+
+            <TextView
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:text="Union South, Wendt Library "
+                android:layout_gravity="center_vertical"
+                android:textStyle="italic"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                />
 
         </LinearLayout>
 
@@ -66,7 +106,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="30dp"
             android:orientation="vertical"
-            android:layout_below="@+id/courseContainer">
+            android:layout_below="@+id/locationContainer">
 
         <TextView
             android:layout_width="wrap_content"
@@ -119,32 +159,32 @@
 
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/sessionDistance"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_below="@id/sessionTime"
-            android:layout_alignRight="@+id/sessionPrice"
-            android:layout_alignEnd="@+id/sessionPrice"
-            android:layout_marginTop="20dp">
+        <!--<LinearLayout-->
+            <!--android:id="@+id/sessionDistance"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:orientation="vertical"-->
+            <!--android:layout_below="@id/sessionTime"-->
+            <!--android:layout_alignRight="@+id/sessionPrice"-->
+            <!--android:layout_alignEnd="@+id/sessionPrice"-->
+            <!--android:layout_marginTop="20dp">-->
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Travel Distance: 0 mi "
-                android:id="@+id/travelDistance"
-                android:layout_gravity="center"
-                android:textSize="16dp"
-             />
+            <!--<TextView-->
+                <!--android:layout_width="wrap_content"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:text="Travel Distance: 0 mi "-->
+                <!--android:id="@+id/travelDistance"-->
+                <!--android:layout_gravity="center"-->
+                <!--android:textSize="16dp"-->
+             <!--/>-->
 
-            <SeekBar
-                android:layout_width="254dp"
-                android:layout_height="wrap_content"
-                android:id="@+id/seekDistance"
-                android:max="10" />
+            <!--<SeekBar-->
+                <!--android:layout_width="254dp"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:id="@+id/seekDistance"-->
+                <!--android:max="10" />-->
 
-        </LinearLayout>
+        <!--</LinearLayout>-->
 
 
         <Button
