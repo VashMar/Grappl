@@ -34,7 +34,7 @@ import java.util.List;
 /**
  * Created by vash on 4/8/15.
  */
-public class Chat extends Activity  {
+public class Chat extends Activity {
 
     private MessagesAdapter adapter;
     private List<MessageObject> messageList;
@@ -193,8 +193,6 @@ public class Chat extends Activity  {
         Intent intent = new Intent(this, DBService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
-
-
     }
 
 
@@ -275,7 +273,7 @@ public class Chat extends Activity  {
         dialog.setCustomTitle(title);
 
         list.setAdapter(locationsAdapter);
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener(){
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
                 // If a previous item was selected unhighlight it

@@ -27,9 +27,15 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class Waiting extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
@@ -44,6 +50,8 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     private boolean mBound = false;
     DBService mService;
 
+    // list of meeting spots on map
+    private ArrayList<LocationObject> meetingSpots;
 
     // receiver to handle server responses for this activity
     private BroadcastReceiver waitingReceiver = new BroadcastReceiver(){
@@ -67,6 +75,20 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             }
         }
     };
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            DBService.LocalBinder binder = (DBService.LocalBinder) service;
+            mService = binder.getService();
+            mService.setSession(session);
+            mBound = true;
+            mLastLocation = mService.getLocation();
+        }
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
 
 
     // receiver to handle multicast responses
@@ -94,9 +116,8 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         setContentView(R.layout.activity_tutorselect);
 
         Bundle extras = getIntent().getExtras();
-        if (extras != null && extras.containsKey("location")) {
-            mLastLocation = extras.getParcelable("location");
-            Log.v("Current user location",  mLastLocation.getLatitude() +  " , " + mLastLocation.getLongitude());
+        if (extras != null ){
+            meetingSpots = extras.getParcelableArrayList("meetingSpots");
         }
 
         getActionBar().setTitle("Waiting..");
@@ -111,7 +132,6 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         //create map
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
 
 
     }
@@ -208,34 +228,28 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     @Override
     public void onMapReady(GoogleMap googleMap) {
         googleMap.setMyLocationEnabled(true);
-        LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLoc, 11));
+//        LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+//        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLoc, 11));
 
-        // TODO: get distance travelled radius from current user data and show it on map
-        Float distance = session.getCurrentUser().travelDistance();
-        Log.v("Tutor travel dist", distance +"");
-        googleMap.addCircle(new CircleOptions()
-                .center(userLoc)
-                .radius(distance * 1609.34)
-                .strokeColor(Color.DKGRAY)
-                .strokeWidth(2)
-                .fillColor(Color.parseColor("#500084d3"))
-                .visible(true));
+        List<LatLng> coordinates = new ArrayList<LatLng>();
+        // loop through all added meeting spots and mark them on map
+        for(LocationObject meetingSpot : meetingSpots){
+            LatLng meetLoc = new LatLng(meetingSpot.lat, meetingSpot.lon);
+            coordinates.add(meetLoc);
+            googleMap.addMarker(new MarkerOptions()
+                    .position(meetLoc)
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
+
+        }
+
+        LatLng center = findCenter(coordinates);
+        googleMap.moveCamera( CameraUpdateFactory.newLatLngZoom(center , 14));
+
+
+
     }
 
 
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            DBService.LocalBinder binder = (DBService.LocalBinder) service;
-            mService = binder.getService();
-            mService.setSession(session);
-            mBound = true;
-            mLastLocation = mService.getLocation();
-        }
-        public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
-        }
-    };
 
 
     private void endBroadcastPrompt(){
@@ -257,6 +271,56 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 })
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
+    }
+
+
+
+    private LatLng findCenter(List<LatLng> coordinates){
+
+        if(coordinates.size() == 1){
+          return coordinates.get(0);
+        }
+
+        double x = 0;
+        double y = 0;
+        double z = 0;
+
+
+        for(LatLng coordinate : coordinates){
+            double latitude = deg2rad(coordinate.latitude);
+            double longitude = deg2rad(coordinate.longitude);
+
+            x += Math.cos(latitude) * Math.cos(longitude);
+            y += Math.cos(latitude) * Math.sin(longitude);
+            z += Math.sin(latitude);
+
+        }
+
+       double total = coordinates.size();
+
+        x = x / total;
+        y = y / total;
+        z = z / total;
+
+        double centralLongitude = Math.atan2(y, x);
+        double centralSquareRoot = Math.sqrt(x * x + y * y);
+        double centralLatitude = Math.atan2(z, centralSquareRoot);
+
+        return new LatLng(rad2deg(centralLatitude), rad2deg(centralLongitude));
+
+    }
+
+
+    /************************************  Helpers   ***************************************************************************/
+
+    // conversions
+    private double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+
+    private double rad2deg(double rad) {
+        return (rad * 180 / Math.PI);
     }
 
 

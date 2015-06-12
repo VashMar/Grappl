@@ -24,6 +24,7 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 
 import org.json.JSONArray;
@@ -31,6 +32,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 
+import java.lang.reflect.Type;
 import java.net.*; // for URIexception
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -207,21 +209,29 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     /****************************************************************************** Socket Emits *********************************************************************/
 
     // lets a tutor broadcast their availability
-    public void startBroadcast(int time, int distance, double price, String[] courses){
+    public void startBroadcast(int time, double price, String[] courses, ArrayList<LocationObject> selectedLocs){
 
         JSONObject broadcastInfo = new JSONObject();
         JSONArray tutorCourses = new JSONArray();
+        JSONArray meetingSpots = new JSONArray();
 
         try{
 
             for(String course : courses){
                 tutorCourses.put(course);
             }
+            
+
+            for(LocationObject loc : selectedLocs){
+                meetingSpots.put(gson.toJson(loc));
+            }
+
+
 
             broadcastInfo.put("time", time);
-            broadcastInfo.put("distance", distance);
             broadcastInfo.put("price", price);
             broadcastInfo.put("courses", tutorCourses);
+            broadcastInfo.put("meetingSpots", meetingSpots);
             broadcastInfo.put("lat", mCurrentLocation.getLatitude());
             broadcastInfo.put("lon", mCurrentLocation.getLongitude());
             Log.v("Emitting..", "Set Available");

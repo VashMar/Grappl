@@ -9,6 +9,7 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.math.BigInteger;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 
 /**
  * Created by vash on 5/8/15.
@@ -35,7 +36,7 @@ public class UserObject implements Parcelable {
 
 
     // constructor
-    public UserObject(String firstName, String lastName, String id, String email, String profilePic, LocationObject location,  TutorSession session){
+    public UserObject(String firstName, String lastName, String id, String email, String profilePic, LocationObject location, TutorSession session){
         this.firstName = firstName;
         this.lastName = lastName;
         this.id = id;
@@ -131,6 +132,10 @@ public class UserObject implements Parcelable {
 
     public int sessionLength(){
         return this.session.maxLength;
+    }
+
+    public ArrayList<LocationObject> getMeetingSpots(){
+        return this.session.meetingSpots;
     }
 
     public void setId(String ID){

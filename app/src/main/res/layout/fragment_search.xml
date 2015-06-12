@@ -40,7 +40,7 @@
             android:layout_marginTop="15dp"
             />
 
-        <ListView  android:id="@+id/list"
+        <ListView android:id="@+id/list"
             android:layout_width="fill_parent"
             android:layout_height="220dp"
             android:layout_gravity="center_horizontal|top"
@@ -65,8 +65,15 @@
             android:id="@+id/seekBar2"
             android:layout_gravity="center"
             android:layout_marginTop="120dp"
-
             android:max="10" />
+
+        <ProgressBar
+            android:id="@+id/spinner"
+            style="?android:attr/progressBarStyleLarge"
+            android:visibility="gone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true" />
 
     </FrameLayout>
 

@@ -82,15 +82,17 @@
             android:orientation="horizontal">
 
             <ImageButton
+                android:id="@+id/locationButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@null"
                 android:src="@drawable/meetup"/>
 
             <TextView
+                android:id="@+id/locationsText"
                 android:layout_width="250dp"
                 android:layout_height="wrap_content"
-                android:text="Union South, Wendt Library "
+                android:text="None"
                 android:layout_gravity="center_vertical"
                 android:textStyle="italic"
                 android:paddingLeft="10dp"

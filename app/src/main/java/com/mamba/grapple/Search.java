@@ -28,6 +28,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ArrayAdapter;
@@ -61,6 +62,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
     TextView distanceView;
     Button search;
     View selected = null;
+    ProgressBar spinner;
 
     // Request Params
     int distance = 0;
@@ -181,6 +183,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
         listView = (ListView) getView().findViewById(R.id.list);
         distanceView = (TextView) getView().findViewById(R.id.textView5);
         search = (Button) getView().findViewById(R.id.button);
+        spinner = (ProgressBar) getView().findViewById(R.id.spinner);
         courseList = getCourseList();
 
         //add elements from array to list view
@@ -341,6 +344,12 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
                 return "Unable to retrieve web page. URL may be invalid.";
             }
         }
+
+        @Override
+        protected void onPreExecute(){
+            spinner.setVisibility(View.VISIBLE);
+        }
+
         // onPostExecute displays the results of the AsyncTask.
         @Override
         protected void onPostExecute(String result){
@@ -431,26 +440,26 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
     private void dummyPopulate(ArrayList<UserObject> tutorList){
 
-        LocationObject loc1 = new LocationObject(43.0719139, -89.4081352);
-        TutorSession session1 = new TutorSession(15, 60, true);
-        UserObject tutor1 = new UserObject("Jess", "Kannon", "5", "dummy@test.com" , "", loc1, session1);
-
-        LocationObject loc2 = new LocationObject(43.0767057, -89.4010609);
-        TutorSession session2 = new TutorSession(15, 60, true);
-        UserObject tutor2 = new UserObject("Eric", "Trac", "3", "dummy@test.com", "", loc2, session2);
-
-        LocationObject loc3 = new LocationObject(43.0726811,-89.40169209999999);
-        TutorSession session3 = new TutorSession(16, 60, true);
-        UserObject tutor3 = new UserObject("Robert", "Williams", "4" , "dummy@test.com",  "", loc3, session3);
-
-        LocationObject loc4 = new LocationObject(43.0726811,-89.40169209999999);
-        TutorSession session4 = new TutorSession(18, 60, true);
-        UserObject tutor4 = new UserObject("Nadia", "Martinez", "5", "dummy@test.com",  "", loc4, session4);
-
-        tutorList.add(tutor1);
-        tutorList.add(tutor2);
-        tutorList.add(tutor3);
-        tutorList.add(tutor4);
+//        LocationObject loc1 = new LocationObject(43.0719139, -89.4081352);
+//        TutorSession session1 = new TutorSession(15, 60, true);
+//        UserObject tutor1 = new UserObject("Jess", "Kannon", "5", "dummy@test.com" , "", loc1, session1);
+//
+//        LocationObject loc2 = new LocationObject(43.0767057, -89.4010609);
+//        TutorSession session2 = new TutorSession(15, 60, true);
+//        UserObject tutor2 = new UserObject("Eric", "Trac", "3", "dummy@test.com", "", loc2, session2);
+//
+//        LocationObject loc3 = new LocationObject(43.0726811,-89.40169209999999);
+//        TutorSession session3 = new TutorSession(16, 60, true);
+//        UserObject tutor3 = new UserObject("Robert", "Williams", "4" , "dummy@test.com",  "", loc3, session3);
+//
+//        LocationObject loc4 = new LocationObject(43.0726811,-89.40169209999999);
+//        TutorSession session4 = new TutorSession(18, 60, true);
+//        UserObject tutor4 = new UserObject("Nadia", "Martinez", "5", "dummy@test.com",  "", loc4, session4);
+//
+//        tutorList.add(tutor1);
+//        tutorList.add(tutor2);
+//        tutorList.add(tutor3);
+//        tutorList.add(tutor4);
 
     }
 

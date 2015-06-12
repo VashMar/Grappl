@@ -81,6 +81,8 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
     LoginManager session;
 
+    ArrayList<LocationObject> meetingSpots;
+
 
     // receiver to handle server responses for this activity
     private BroadcastReceiver meetupReceiver = new BroadcastReceiver(){
@@ -272,44 +274,74 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     @Override
     public void onMapReady(GoogleMap map) {
         Log.v("Google Map Ready", "Adding tutor marker");
-        LatLng tutorLoc = new LatLng(otherUser.getLatitude(), otherUser.getLongitude());
+
+        meetingSpots = otherUser.getMeetingSpots();
         int zoom;
         gMap = map;
         map.setMyLocationEnabled(true);
-        tutorMarker = gMap.addMarker(new MarkerOptions()
-                .position(tutorLoc)
-                .title("Tutor")
-                .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
 
-        iwadapter = new TutorWindowAdapter();
-        gMap.setInfoWindowAdapter(iwadapter);
-        iwadapter.getInfoWindow(tutorMarker);
+        List<LatLng> coordinates = new ArrayList<LatLng>();
 
-        if (mLastLocation != null) {
-            LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-
-            Log.v("mLastLocation Exists", "Adding user marker");
-
-            Double distance = Double.parseDouble(otherUser.getDistance(userLoc));
-
-            zoom = (distance < 1) ? 14 : 13;
-
-            CameraPosition cameraPosition = new CameraPosition.Builder()
-                    .target(tutorLoc).zoom(zoom).build();
-
-            gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), new GoogleMap.CancelableCallback() {
-                @Override
-                public void onFinish() {
-                    tutorMarker.showInfoWindow();
-                }
-
-                @Override
-                public void onCancel() {
-
-                }
-            });
+        // add markers for all the potential meeting spots
+        for(int i =0; i < meetingSpots.size(); i++){
+            LatLng meetingLoc = new LatLng(meetingSpots.get(i).lat, meetingSpots.get(i).lon);
+            coordinates.add(meetingLoc);
+            tutorMarker = gMap.addMarker(new MarkerOptions()
+                    .position(meetingLoc)
+                    .title(meetingSpots.get(i).getName())
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
 
         }
+
+
+
+//        iwadapter = new TutorWindowAdapter();
+//        gMap.setInfoWindowAdapter(iwadapter);
+//        iwadapter.getInfoWindow(tutorMarker);
+
+        LatLng center = findCenter(coordinates);
+
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(center).zoom(14).build();
+
+
+        gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), new GoogleMap.CancelableCallback() {
+            @Override
+            public void onFinish() {
+//                tutorMarker.showInfoWindow();
+            }
+
+            @Override
+            public void onCancel() {
+
+            }
+        });
+
+//        if (mLastLocation != null) {
+//            LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
+//
+//            Log.v("mLastLocation Exists", "Adding user marker");
+//
+//            Double distance = Double.parseDouble(otherUser.getDistance(userLoc));
+//
+//            zoom = (distance < 1) ? 14 : 13;
+//
+//            CameraPosition cameraPosition = new CameraPosition.Builder()
+//                    .target(center).zoom(zoom).build();
+//
+//            gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), new GoogleMap.CancelableCallback() {
+//                @Override
+//                public void onFinish() {
+//                    tutorMarker.showInfoWindow();
+//                }
+//
+//                @Override
+//                public void onCancel() {
+//
+//                }
+//            });
+//
+//        }
 
     }
 
@@ -388,6 +420,55 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 .show();
     }
 
+
+    private LatLng findCenter(List<LatLng> coordinates){
+
+        if(coordinates.size() == 1){
+            return coordinates.get(0);
+        }
+
+        double x = 0;
+        double y = 0;
+        double z = 0;
+
+
+        for(LatLng coordinate : coordinates){
+            double latitude = deg2rad(coordinate.latitude);
+            double longitude = deg2rad(coordinate.longitude);
+
+            x += Math.cos(latitude) * Math.cos(longitude);
+            y += Math.cos(latitude) * Math.sin(longitude);
+            z += Math.sin(latitude);
+
+        }
+
+        double total = coordinates.size();
+
+        x = x / total;
+        y = y / total;
+        z = z / total;
+
+        double centralLongitude = Math.atan2(y, x);
+        double centralSquareRoot = Math.sqrt(x * x + y * y);
+        double centralLatitude = Math.atan2(z, centralSquareRoot);
+
+        return new LatLng(rad2deg(centralLatitude), rad2deg(centralLongitude));
+
+    }
+
+
+
+    /************************************  Helpers   ***************************************************************************/
+
+    // conversions
+    private double deg2rad(double deg) {
+        return (deg * Math.PI / 180.0);
+    }
+
+
+    private double rad2deg(double rad) {
+        return (rad * 180 / Math.PI);
+    }
 
 
     /**************************************************************************** Options Menu Management ******************************************************************/

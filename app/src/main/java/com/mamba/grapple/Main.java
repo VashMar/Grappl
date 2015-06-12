@@ -63,7 +63,7 @@ public class Main extends FragmentActivity {
     // receiver intended for multicasts
     private BroadcastReceiver multicastReceiver = new BroadcastReceiver(){
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive(Context context, Intent intent){
             // intent can contain any data
             Bundle extras = intent.getExtras();
 
@@ -146,14 +146,14 @@ public class Main extends FragmentActivity {
 
     // handles the result of login/registration
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
-        if (requestCode == 1 && resultCode == RESULT_OK && data != null) {
+        if (requestCode == 1 && resultCode == RESULT_OK && data != null){
             Log.v("Reached", "Auth Activity Result");
 //            session = new LoginManager(getApplicationContext());
             invalidateOptionsMenu();
         }
     }
 
-    public void createService() {
+    public void createService(){
         Log.v("Login Status", "User has been logged in");
         startService(new Intent(this, DBService.class));
         bindService(new Intent(this, DBService.class), mConnection, Context.BIND_AUTO_CREATE);
