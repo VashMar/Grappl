@@ -36,21 +36,22 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/selectedTitle"
-
             android:layout_marginTop="10dp"
             android:layout_centerHorizontal="true"
             android:orientation="horizontal">
 
         <ImageButton
+            android:id="@+id/courseButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@null"
-            android:src="@drawable/edit"/>
+            android:src="@drawable/editcourses"/>
 
         <TextView
+            android:id="@+id/courseText"
             android:layout_width="250dp"
             android:layout_height="wrap_content"
-            android:text="Computer Science 302, Physics 202 "
+            android:text="None"
             android:layout_gravity="center_vertical"
             android:textStyle="italic"
             android:paddingLeft="10dp"
@@ -76,7 +77,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/selectedMeeting"
-
             android:layout_marginTop="10dp"
             android:layout_centerHorizontal="true"
             android:orientation="horizontal">
@@ -86,7 +86,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@null"
-                android:src="@drawable/meetup"/>
+                android:src="@drawable/addlocations"/>
 
             <TextView
                 android:id="@+id/locationsText"
@@ -101,29 +101,94 @@
 
         </LinearLayout>
 
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Available Time: "
+            android:id="@+id/whenTitle"
+            android:layout_centerHorizontal="true"
+            android:layout_gravity="center_horizontal|top"
+            android:textSize="20dp"
+            android:layout_marginTop="15dp"
+            android:layout_below="@+id/locationContainer"
+            />
+
+
+        <LinearLayout
+            android:id="@+id/timeContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/whenTitle"
+
+            android:layout_marginTop="10dp"
+            android:layout_centerHorizontal="true"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/timeButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:src="@drawable/settime"/>
+
+            <TextView
+                android:id="@+id/availText"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:text="Now, 2 hours "
+                android:layout_gravity="center_vertical"
+                android:textStyle="italic"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Price: "
+            android:id="@+id/priceTitle"
+            android:layout_centerHorizontal="true"
+            android:layout_gravity="center_horizontal|top"
+            android:textSize="20dp"
+            android:layout_marginTop="15dp"
+            android:layout_below="@+id/timeContainer"
+            />
+
         <LinearLayout
             android:id="@+id/sessionPrice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:layout_marginTop="30dp"
-            android:orientation="vertical"
-            android:layout_below="@+id/locationContainer">
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:layout_below="@+id/priceTitle">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Session Price: $10.00 "
-            android:layout_gravity="center"
-            android:textSize="16dp"
-            android:id="@+id/priceView"
-             />
 
-        <SeekBar
-            android:layout_width="254dp"
-            android:layout_height="wrap_content"
-            android:id="@+id/seekPrice"
-            android:max="10" />
+            <ImageButton
+                android:id="@+id/priceButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:src="@drawable/setprice"/>
+
+            <TextView
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:text="$10.00 an hour "
+                android:layout_gravity="center_vertical"
+                android:textStyle="italic"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                />
+
+        <!--<SeekBar-->
+            <!--android:layout_width="254dp"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:id="@+id/seekPrice"-->
+            <!--android:max="10" />-->
             <!--android:layout_gravity="center_horizontal|top"-->
 
 
@@ -131,35 +196,35 @@
         </LinearLayout>
 
 
-        <LinearLayout
-            android:id="@+id/sessionTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_below="@+id/sessionPrice"
-            android:layout_alignLeft="@+id/sessionPrice"
-            android:layout_alignStart="@+id/sessionPrice"
-            android:layout_marginTop="20dp"
-            >
+        <!--<LinearLayout-->
+            <!--android:id="@+id/sessionTime"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:orientation="vertical"-->
+            <!--android:layout_below="@+id/sessionPrice"-->
+            <!--android:layout_alignLeft="@+id/sessionPrice"-->
+            <!--android:layout_alignStart="@+id/sessionPrice"-->
+            <!--android:layout_marginTop="20dp"-->
+            <!-->-->
 
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Availability: 30 min "
-                android:id="@+id/timeAvailable"
-                android:layout_gravity="center"
-                android:textSize="16dp"
-               />
+            <!--<TextView-->
+                <!--android:layout_width="wrap_content"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:text="Availability: 30 min "-->
+                <!--android:id="@+id/timeAvailable"-->
+                <!--android:layout_gravity="center"-->
+                <!--android:textSize="16dp"-->
+               <!--/>-->
 
-            <SeekBar
-                android:layout_width="254dp"
-                android:layout_height="wrap_content"
-                android:id="@+id/seekTime"
-                android:layout_gravity="center"
-                android:max="10" />
+            <!--<SeekBar-->
+                <!--android:layout_width="254dp"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:id="@+id/seekTime"-->
+                <!--android:layout_gravity="center"-->
+                <!--android:max="10" />-->
 
-        </LinearLayout>
+        <!--</LinearLayout>-->
 
         <!--<LinearLayout-->
             <!--android:id="@+id/sessionDistance"-->

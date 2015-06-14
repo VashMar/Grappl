@@ -48,7 +48,7 @@ public class AddressList extends Activity {
 
         locationsContainer = (ListView) findViewById(R.id.addressList);
 
-        adapter = new LocationsAdapter(this, locationList);
+        adapter = new LocationsAdapter(this, locationList, null);
         locationsContainer.setAdapter(adapter);
 
 

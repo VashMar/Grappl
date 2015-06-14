@@ -32,6 +32,14 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="title_activity_waiting">waiting</string>
+    <string name="title_activity_waiting">Waiting...</string>
+
+
+    <string-array name="broadcast_schedule">
+        <item>Now</item>
+        <item>Today</item>
+        <item>Tomorrow</item>
+    </string-array>
+
 
 </resources>

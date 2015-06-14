@@ -14,11 +14,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.NumberPicker;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.TimePicker;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,23 +37,34 @@ public class Broadcast extends Fragment {
     private int availableTime = 30;
     private double price = 10.00;
     private int distance = 1;
-    String[] courses =  {"Comp Sci 302", "Physics 202"};
 
     private LocationsAdapter locationsAdapter;
     private List<LocationObject> locationList;
     private ArrayList<LocationObject> selectedLocations;
     private LocationObject selectedLocation;
 
+    private ArrayList<String> selectedCourses;
+    private String selectedCourse;
+
+    private String whenAvailable;
+    private String lengthAvailable;
+
     SeekBar seekprice;
     SeekBar seektime;
     SeekBar seekdist;
     TextView priceView;
-    TextView timeView;
+    TextView availText;
     TextView distView;
     TextView locText;
+    TextView courseText;
     ImageButton locationButton;
+    ImageButton timeButton;
+    ImageButton priceButton;
+    ImageButton courseButton;
     Button broadcastButton;
     View selected;
+
+    TimePicker timePicker;
 
 
     public Broadcast(){
@@ -71,13 +88,18 @@ public class Broadcast extends Fragment {
     public void onStart(){
         super.onStart();
         selectedLocations = new ArrayList<LocationObject>();
-
+        selectedCourses = new ArrayList<String>();
         broadcastButton = (Button) getView().findViewById(R.id.broadcastButton);
+        courseButton  = (ImageButton) getView().findViewById(R.id.courseButton);
         locationButton = (ImageButton) getView().findViewById(R.id.locationButton);
+        timeButton = (ImageButton) getView().findViewById(R.id.timeButton);
+        priceButton = (ImageButton) getView().findViewById(R.id.priceButton);
         locText = (TextView) getView().findViewById(R.id.locationsText);
+        courseText = (TextView) getView().findViewById(R.id.courseText);
+        availText = (TextView) getView().findViewById(R.id.availText);
         dummyPopulate();
 
-
+        // handles broadcast button click
         broadcastButton.setOnClickListener(new View.OnClickListener(){
            @Override
            public void onClick(View v) {
@@ -85,57 +107,33 @@ public class Broadcast extends Fragment {
            }
         });
 
+        courseButton.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                showCourses(v.getContext());
+            }
+        });
 
+        //shows location list on location button click
         locationButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
                 showLocationList(v.getContext());
             }
         });
 
-        // update user slides
-        //Change price slider
-        priceView = (TextView) getView().findViewById(R.id.priceView);
-        seekprice = (SeekBar) getView().findViewById(R.id.seekPrice);
-
-        seekprice.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+        // shows broadcast scheduling dialog on click
+        timeButton.setOnClickListener(new View.OnClickListener(){
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser){
-                price = 10 +  progress;
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar){
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar){
-                priceView.setText("Price: $" + price);
+            public void onClick(View v) {
+                broadcastSchedule(v.getContext());
             }
         });
 
-        //change
-        timeView = (TextView) getView().findViewById(R.id.timeAvailable);
-        seektime = (SeekBar) getView().findViewById(R.id.seekTime);
-
-        seektime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                availableTime = 30 + progress * 10;
+        priceButton.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                setPrice(v.getContext());
             }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                timeView.setText("Availability: " + availableTime + " min");
-            }
-
-
         });
+
 
 
     }
@@ -152,7 +150,7 @@ public class Broadcast extends Fragment {
     public void startBroadcast() {
         if (selectedLocations.size() > 0) {
             Log.v("Starting Broadcast..", "Broadcast initiated");
-            ((Main) getActivity()).mService.startBroadcast(availableTime, price, courses, selectedLocations);
+            ((Main) getActivity()).mService.startBroadcast(availableTime, price, selectedCourses, selectedLocations);
             ((Main) getActivity()).session.updateCurrentUserDistance(distance);
             Intent intent = new Intent(getActivity(), Waiting.class);
             intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
@@ -169,6 +167,205 @@ public class Broadcast extends Fragment {
         mListener = null;
     }
 
+    public void showCourses(Context context){
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+
+        dialog.setCancelable(true);
+
+        View view = ((Activity)context).getLayoutInflater().inflate(R.layout.dialog_courses, null);
+
+        ListView listView = (ListView) view.findViewById(R.id.courseList);
+        Button selectBtn = (Button) view.findViewById(R.id.selectBtn);
+
+
+        //add elements from array to list view, show previously selected items
+        listView.setAdapter(new ArrayAdapter<String>(getActivity(),
+                R.layout.row, ((Main) getActivity()).COURSES){ // TODO swap COURSES with courseList
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent)
+            {
+                final View renderer = super.getView(position, convertView, parent);
+                if(selectedCourses.contains(((Main)getActivity()).COURSES[position])){
+                    Log.v("Position", "" + position);
+                    renderer.setBackgroundColor(Color.rgb(62, 175, 212));
+                }else{
+                    renderer.setBackgroundColor(Color.TRANSPARENT);
+                }
+
+
+                return renderer;
+            }
+        });
+
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                Log.v("Item Click Position", ""+position);
+                // get the selected course
+                selectedCourse = ((Main) getActivity()).COURSES[position];
+
+                // If a previous item was selected unhighlight it and remove it from the list
+                if (selectedCourses.contains(selectedCourse)){
+                    view.setBackgroundColor(Color.TRANSPARENT);
+                    selectedCourses.remove(selectedCourse);
+                }else{
+                    // highlight the selected item
+                    view.setBackgroundColor(Color.rgb(62, 175, 212));
+                    selectedCourses.add(selectedCourse);
+                }
+
+            }
+        });
+
+
+
+        TextView title = new TextView(getActivity());
+
+        // title info
+        title.setText("Select Your Courses For Tutoring");
+        title.setGravity(Gravity.CENTER);
+        title.setTextSize(20);
+        title.setHeight(200);
+
+
+        dialog.setCustomTitle(title);
+
+
+        dialog.setView(view);
+        final AlertDialog alert = dialog.show();
+
+        // on set button click
+        selectBtn.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                // close dialog, take chosen courses and display them
+                insertCourseText();
+                alert.cancel();
+            }
+        });
+
+
+    }
+
+    public void setPrice(Context context){
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+
+        dialog.setCancelable(true);
+
+
+        View view = ((Activity)context).getLayoutInflater().inflate(R.layout.dialog_priceset, null);
+        NumberPicker numPicker1 = (NumberPicker) view.findViewById(R.id.numberPicker);
+        NumberPicker numPicker2 = (NumberPicker) view.findViewById(R.id.numberPicker2);
+        NumberPicker numPicker3 = (NumberPicker) view.findViewById(R.id.numberPicker3);
+
+        // initialize the num pickers
+        numPicker1.setMinValue(10);
+        numPicker1.setMaxValue(50);
+        numPicker2.setMinValue(0);
+        numPicker2.setMaxValue(9);
+        numPicker3.setMinValue(0);
+        numPicker3.setMaxValue(9);
+
+        Button setBtn = (Button) view.findViewById(R.id.setBtn);
+
+
+        TextView title = new TextView(getActivity());
+
+        // title info
+        title.setText("Set Your Hourly Price");
+        title.setGravity(Gravity.CENTER);
+        title.setTextSize(20);
+
+        dialog.setCustomTitle(title);
+
+
+        dialog.setView(view);
+        final AlertDialog alert = dialog.show();
+
+        // on set button click
+        setBtn.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                // close dialog, take chosen locations and display them
+                alert.cancel();
+            }
+        });
+
+    }
+
+    public void broadcastSchedule(Context context){
+        final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+
+        dialog.setCancelable(true);
+
+        View view = ((Activity)context).getLayoutInflater().inflate(R.layout.dialog_broadcastschedule, null);
+
+        Spinner spinner = (Spinner) view.findViewById(R.id.spinner);
+        // Create an ArrayAdapter using the string array and a default spinner layout
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getActivity(),
+                R.array.broadcast_schedule, android.R.layout.simple_spinner_item);
+        // Specify the layout to use when the list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        spinner.setAdapter(adapter);
+
+        timePicker = (TimePicker) view.findViewById(R.id.timePicker);
+        timePicker.setEnabled(false);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                // your code here
+                if (position == 0) {
+                    timePicker.setEnabled(false);
+                } else {
+                    timePicker.setEnabled(true);
+                }
+
+                whenAvailable = parentView.getItemAtPosition(position).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+                // your code here
+                whenAvailable = "Now";
+            }
+
+        });
+
+        TextView title = new TextView(getActivity());
+
+        // title info
+        title.setText("Set Your Broadcast Time");
+        title.setGravity(Gravity.CENTER);
+        title.setTextSize(20);
+
+        dialog.setCustomTitle(title);
+
+
+        dialog.setView(view);
+        final AlertDialog alert = dialog.show();
+
+
+        Button setBtn = (Button) view.findViewById(R.id.setBtn);
+
+        // on suggest button click
+        setBtn.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+                // close dialog, show when available
+                insertAvailText();
+                alert.cancel();
+            }
+        });
+
+
+    }
 
     public void showLocationList(Context context){
         final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
@@ -180,7 +377,7 @@ public class Broadcast extends Fragment {
 
         ListView list = (ListView) view.findViewById(R.id.addressList);
         Button suggestBtn = (Button) view.findViewById(R.id.suggestBtn);
-        locationsAdapter = new LocationsAdapter(getActivity(), locationList);
+        locationsAdapter = new LocationsAdapter(getActivity(), locationList, selectedLocations);
         TextView title = new TextView(getActivity());
 
         // title info
@@ -199,11 +396,11 @@ public class Broadcast extends Fragment {
                 selectedLocation = locationList.get(position);
 
                 // If a previous item was selected unhighlight it and remove it from the list
-                if (selectedLocations.contains(selectedLocation)){
+                if (selectedLocations.contains(selectedLocation)) {
                     view.setBackgroundColor(Color.TRANSPARENT);
                     selectedLocations.remove(selectedLocation);
 //                    parent.getChildAt(0).setBackgroundColor(Color.TRANSPARENT);
-                }else{
+                } else {
                     // highlight the selected item
                     view.setBackgroundColor(Color.rgb(62, 175, 212));
                     selectedLocations.add(selectedLocation);
@@ -258,6 +455,28 @@ public class Broadcast extends Fragment {
 
         locText.setText(locationString);
     }
+
+
+    public void insertCourseText(){
+        String coursesString = "";
+        int i = 1;
+        for(String selectedCourse: selectedCourses){
+            if(i < selectedCourses.size()){
+                coursesString += selectedCourse + ", ";
+            }else{
+                coursesString += selectedCourse;
+            }
+
+            i++;
+        }
+
+        courseText.setText(coursesString);
+    }
+
+    public void insertAvailText(){
+        availText.setText(whenAvailable+", "+lengthAvailable);
+    }
+
 
     public void dummyPopulate(){
 

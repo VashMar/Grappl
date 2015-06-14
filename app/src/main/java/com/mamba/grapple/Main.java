@@ -20,6 +20,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TabHost;
 
+import java.util.ArrayList;
+
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 /**
@@ -42,6 +44,9 @@ public class Main extends FragmentActivity {
     LoginManager session;
     UserObject currentUser;
 
+    // temporary until DB load setup (use SimpleCursorAdapter for DB)
+    static final String[] COURSES = {"Chemistry 103", "Comp Sci 302", "French 4", "Math 234", "Physics 202"};
+    ArrayList<String> courseList;
 
     // receiver intended for this activity
     private BroadcastReceiver mainReceiver = new BroadcastReceiver(){

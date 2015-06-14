@@ -2,12 +2,14 @@ package com.mamba.grapple;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,7 +18,7 @@ import java.util.List;
 public class LocationsAdapter extends BaseAdapter {
     private Context context;
     private List<LocationObject> locations;
-
+    private ArrayList<LocationObject> selectedLocs;
 
     public int getCount() {
         return locations.size();
@@ -45,6 +47,13 @@ public class LocationsAdapter extends BaseAdapter {
             convertView = mInflater.inflate(R.layout.address_list_row, null);
         }
 
+        if(selectedLocs.contains(loc)){
+            convertView.setBackgroundColor(Color.rgb(62, 175, 212));
+        }else{
+            convertView.setBackgroundColor(Color.TRANSPARENT);
+        }
+
+
 
         // TODO: have a different message type for notification messages
 
@@ -57,9 +66,10 @@ public class LocationsAdapter extends BaseAdapter {
         return convertView;
     }
 
-    public LocationsAdapter(Context context, List<LocationObject> navDrawerItems) {
+    public LocationsAdapter(Context context, List<LocationObject> navDrawerItems, ArrayList<LocationObject> selectedLocations) {
         this.context = context;
         this.locations = navDrawerItems;
+        this.selectedLocs = selectedLocations;
     }
 
 

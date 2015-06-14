@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+
+    <LinearLayout
+        android:id="@+id/sessionTime"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:layout_gravity="center"
+        android:layout_weight=".9"
+        >
+
+
+        <TextView
+            android:id="@+id/whenTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="When?"
+            android:textSize="30dp"
+            android:layout_gravity="center"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"/>
+
+        <Spinner
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner"
+            android:layout_gravity="center"
+            />
+
+
+
+        <TimePicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/timePicker"
+            android:layout_gravity="center"
+           />
+
+
+
+
+        <TextView
+            android:id="@+id/availabilityTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="How long?"
+            android:textSize="20dp"
+            android:layout_marginTop="-20dp"
+            android:layout_gravity="center"/>
+
+        <SeekBar
+            android:layout_width="254dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/seekTime"
+            android:layout_gravity="center"
+            android:max="10" />
+
+        <TextView
+            android:id="@+id/time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="30 min"
+            android:textSize="18dp"
+            android:paddingBottom="5dp"
+            android:layout_gravity="center"/>
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/setBtn"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+
+        android:layout_weight=".1"
+        android:background="@color/theme"
+        android:textColor="@color/white"
+        android:layout_gravity="bottom"
+        android:text="Set"
+   />
+
+
+
+</LinearLayout>

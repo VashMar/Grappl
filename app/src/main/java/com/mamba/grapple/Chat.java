@@ -262,7 +262,7 @@ public class Chat extends Activity {
 
         ListView list = (ListView) view.findViewById(R.id.addressList);
         Button suggestBtn = (Button) view.findViewById(R.id.suggestBtn);
-        locationsAdapter = new LocationsAdapter(this, locationList);
+        locationsAdapter = new LocationsAdapter(this, locationList, null);
         TextView title = new TextView(this);
 
         // title info

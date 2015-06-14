@@ -70,13 +70,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
     String currLat;
     String currLong;
 
-//    // service related variables
-//    private boolean mBound = false;
-//    DBService mService;
 
-    // temporary until DB load setup (use SimpleCursorAdapter for DB)
-    static final String[] COURSES = {"Chemistry 103", "Comp Sci 302", "French 4", "Math 234", "Physics 202"};
-    ArrayList<String> courseList = new ArrayList();
     // current url path for tutor list retrieval
     static final String TUTOR_PATH = "http://protected-dawn-4244.herokuapp.com/tutors";
 
@@ -135,45 +129,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
             }
         });
 
-
-
-
-//        // Create a GoogleApiClient instance
-//        mGoogleApiClient = new GoogleApiClient.Builder(this)
-//                .addConnectionCallbacks(this)
-//                .addOnConnectionFailedListener(this)
-//                .addApi(LocationServices.API)
-//                .build();
-//
-//        // connect to the instance
-//        mGoogleApiClient.connect();
-
     }
-
-
-//    // check login status every time the activity gets shown
-//    protected void onResume(){
-//        super.onResume();
-//        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-//        String token = sharedPreferences.getString("token", null);
-//        if(token != null) {
-//            loggedIn = true;
-//            Log.v("Search Login Status", "User has been logged in");
-//            Intent intent = new Intent(this, DBService.class);
-//            bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-//
-//        }
-//    }
-//
-//    protected void onPause(){
-//        super.onPause();
-//        // Unbind from the service
-//        if (mBound){
-//            Log.v("Unbinding Service", "Search Activity");
-//            unbindService(mConnection);
-//            mBound = false;
-//        }
-//    }
 
 
 
@@ -184,11 +140,11 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
         distanceView = (TextView) getView().findViewById(R.id.textView5);
         search = (Button) getView().findViewById(R.id.button);
         spinner = (ProgressBar) getView().findViewById(R.id.spinner);
-        courseList = getCourseList();
+
 
         //add elements from array to list view
         listView.setAdapter(new ArrayAdapter<String>(getActivity(),
-                R.layout.row, COURSES){ // TODO swap COURSES with courseList
+                R.layout.row, ((Main) getActivity()).COURSES){ // TODO swap COURSES with courseList
 
             @Override
             public View getView(int position, View convertView, ViewGroup parent)
@@ -261,22 +217,6 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
 
     }
-
-//    private ServiceConnection mConnection = new ServiceConnection(){
-//        public void onServiceConnected(ComponentName className, IBinder service){
-//            DBService.LocalBinder binder = (DBService.LocalBinder) service;
-//            mService = binder.getService();
-//            mBound = true;
-//
-//        }
-//
-//        public void onServiceDisconnected(ComponentName arg0){
-//            mBound = false;
-//        }
-//    };
-
-
-
 
 
 
