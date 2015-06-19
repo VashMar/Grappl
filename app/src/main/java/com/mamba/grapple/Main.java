@@ -1,16 +1,20 @@
 package com.mamba.grapple;
 
 import android.app.ActionBar;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.content.LocalBroadcastManager;
@@ -43,6 +47,7 @@ public class Main extends FragmentActivity {
     // current user data
     LoginManager session;
     UserObject currentUser;
+    Context context;
 
     // temporary until DB load setup (use SimpleCursorAdapter for DB)
     static final String[] COURSES = {"Chemistry 103", "Comp Sci 302", "French 4", "Math 234", "Physics 202"};
@@ -87,8 +92,8 @@ public class Main extends FragmentActivity {
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        session = new LoginManager(getApplicationContext());
+        context = getApplicationContext();
+        session = new LoginManager(context);
 
         mTabHost = (TabHost) findViewById(R.id.tabHost);
         mTabHost.setup();
@@ -122,6 +127,45 @@ public class Main extends FragmentActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(multicastReceiver,
                 new IntentFilter("multicastReceiver"));
 
+        LocationManager lm = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+        boolean gps_enabled = false;
+        boolean network_enabled = false;
+
+        try {
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            Log.v("GPS Enabled", gps_enabled+"");
+        } catch(Exception ex) {}
+
+        try {
+            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            Log.v("GPS Network", network_enabled+"");
+        } catch(Exception ex) {}
+
+        if(!gps_enabled && !network_enabled) {
+            // notify user
+
+            AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+            dialog.setMessage("GPS not enabled");
+            dialog.setPositiveButton("Enable GPS?", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                    // TODO Auto-generated method stub
+                    Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    context.startActivity(myIntent);
+                    //get gps
+                }
+            });
+            dialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                    // TODO Auto-generated method stub
+
+                }
+            });
+            dialog.show();
+        }
+
     }
 
     // check login status every time the activity gets shown
@@ -152,7 +196,7 @@ public class Main extends FragmentActivity {
     // handles the result of login/registration
     protected void onActivityResult(int requestCode, int resultCode, Intent data){
         if (requestCode == 1 && resultCode == RESULT_OK && data != null){
-            Log.v("Reached", "Auth Activity Result");
+            Log.v("Reached Main", "Auth Activity Result");
 //            session = new LoginManager(getApplicationContext());
             invalidateOptionsMenu();
         }
@@ -223,6 +267,9 @@ public class Main extends FragmentActivity {
                 return super.onOptionsItemSelected(item);
         }
     }
+
+
+
 
 
 }

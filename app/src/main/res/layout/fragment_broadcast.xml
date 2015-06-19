@@ -175,6 +175,7 @@
                 android:src="@drawable/setprice"/>
 
             <TextView
+                android:id="@+id/priceText"
                 android:layout_width="250dp"
                 android:layout_height="wrap_content"
                 android:text="$10.00 an hour "

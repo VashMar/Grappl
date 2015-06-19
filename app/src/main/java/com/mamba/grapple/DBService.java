@@ -69,8 +69,10 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         System.out.println("DBService Created");
         super.onCreate();
 
-        if (!isGooglePlayServicesAvailable()) {
+        if (!isGooglePlayServicesAvailable()){
             Log.e("Google Play Services", "Could not connect");
+        }else{
+            Log.v("Google Play Services", "Connected");
         }
 
         createLocationRequest();
@@ -209,7 +211,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     /****************************************************************************** Socket Emits *********************************************************************/
 
     // lets a tutor broadcast their availability
-    public void startBroadcast(int time, double price, ArrayList<String> courses, ArrayList<LocationObject> selectedLocs){
+    public void startBroadcast(long startTime, int length, double price, ArrayList<String> courses, ArrayList<LocationObject> selectedLocs){
 
         JSONObject broadcastInfo = new JSONObject();
         JSONArray tutorCourses = new JSONArray();
@@ -227,8 +229,8 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             }
 
 
-
-            broadcastInfo.put("time", time);
+            broadcastInfo.put("startTime", startTime);
+            broadcastInfo.put("length", length);
             broadcastInfo.put("price", price);
             broadcastInfo.put("courses", tutorCourses);
             broadcastInfo.put("meetingSpots", meetingSpots);
@@ -500,7 +502,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
     }
 
-    protected void startLocationUpdates() {
+    protected void startLocationUpdates(){
         PendingResult<Status> pendingResult = LocationServices.FusedLocationApi.requestLocationUpdates(
                 mGoogleApiClient, mLocationRequest, this);
 

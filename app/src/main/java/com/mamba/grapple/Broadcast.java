@@ -26,7 +26,10 @@ import android.widget.TimePicker;
 
 import org.w3c.dom.Text;
 
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 
@@ -35,8 +38,7 @@ public class Broadcast extends Fragment {
 
     private OnFragmentInteractionListener mListener;
     private int availableTime = 30;
-    private double price = 10.00;
-    private int distance = 1;
+
 
     private LocationsAdapter locationsAdapter;
     private List<LocationObject> locationList;
@@ -46,17 +48,17 @@ public class Broadcast extends Fragment {
     private ArrayList<String> selectedCourses;
     private String selectedCourse;
 
-    private String whenAvailable;
-    private String lengthAvailable;
+
 
     SeekBar seekprice;
     SeekBar seektime;
     SeekBar seekdist;
-    TextView priceView;
+    TextView timeLength;
     TextView availText;
     TextView distView;
     TextView locText;
     TextView courseText;
+    TextView priceText;
     ImageButton locationButton;
     ImageButton timeButton;
     ImageButton priceButton;
@@ -65,6 +67,19 @@ public class Broadcast extends Fragment {
     View selected;
 
     TimePicker timePicker;
+
+
+    //dialog variables
+    private String whenAvailable;
+    private String lengthAvailable;
+    private int lengthHr;
+    private int lengthMin;
+    private String priceString;
+    private double hrRate;
+    private int broadcastDate;
+    private int broadcastMonth;
+    private int broadcastYear;
+    private long broadcastMS;
 
 
     public Broadcast(){
@@ -97,13 +112,24 @@ public class Broadcast extends Fragment {
         locText = (TextView) getView().findViewById(R.id.locationsText);
         courseText = (TextView) getView().findViewById(R.id.courseText);
         availText = (TextView) getView().findViewById(R.id.availText);
+        priceText = (TextView) getView().findViewById(R.id.priceText);
         dummyPopulate();
 
         // handles broadcast button click
         broadcastButton.setOnClickListener(new View.OnClickListener(){
            @Override
-           public void onClick(View v) {
-                startBroadcast();
+           public void onClick(View v){
+               // if they hit the broadcast button and aren't logged in, redirect them to the login
+               if(!((Main) getActivity()).session.isLoggedIn()){
+                   // transfer the user to the register page
+                   Intent intent = new Intent(getActivity(), SignIn.class);
+
+                   // we expect the auth response
+                   startActivityForResult(intent, 1);
+               }else{
+                   startBroadcast();
+               }
+
            }
         });
 
@@ -147,11 +173,20 @@ public class Broadcast extends Fragment {
         }
     }
 
+
+
+
+
     public void startBroadcast() {
         if (selectedLocations.size() > 0) {
             Log.v("Starting Broadcast..", "Broadcast initiated");
-            ((Main) getActivity()).mService.startBroadcast(availableTime, price, selectedCourses, selectedLocations);
-            ((Main) getActivity()).session.updateCurrentUserDistance(distance);
+            Log.v("Broadcast MS", broadcastMS+"");
+            Log.v("Available Time", availableTime+"");
+            Log.v("Hourly Rate", hrRate+"");
+            Log.v("Selected Course", selectedCourses+"");
+            Log.v("Selected Locations", selectedLocations+"");
+            ((Main) getActivity()).mService.startBroadcast(broadcastMS, availableTime, hrRate, selectedCourses, selectedLocations);
+//            ((Main) getActivity()).session.updateCurrentUserDistance(distance);
             Intent intent = new Intent(getActivity(), Waiting.class);
             intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
             startActivity(intent);
@@ -180,16 +215,15 @@ public class Broadcast extends Fragment {
 
         //add elements from array to list view, show previously selected items
         listView.setAdapter(new ArrayAdapter<String>(getActivity(),
-                R.layout.row, ((Main) getActivity()).COURSES){ // TODO swap COURSES with courseList
+                R.layout.row, ((Main) getActivity()).COURSES) { // TODO swap COURSES with courseList
 
             @Override
-            public View getView(int position, View convertView, ViewGroup parent)
-            {
+            public View getView(int position, View convertView, ViewGroup parent) {
                 final View renderer = super.getView(position, convertView, parent);
-                if(selectedCourses.contains(((Main)getActivity()).COURSES[position])){
+                if (selectedCourses.contains(((Main) getActivity()).COURSES[position])) {
                     Log.v("Position", "" + position);
                     renderer.setBackgroundColor(Color.rgb(62, 175, 212));
-                }else{
+                } else {
                     renderer.setBackgroundColor(Color.TRANSPARENT);
                 }
 
@@ -202,15 +236,15 @@ public class Broadcast extends Fragment {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                Log.v("Item Click Position", ""+position);
+                Log.v("Item Click Position", "" + position);
                 // get the selected course
                 selectedCourse = ((Main) getActivity()).COURSES[position];
 
                 // If a previous item was selected unhighlight it and remove it from the list
-                if (selectedCourses.contains(selectedCourse)){
+                if (selectedCourses.contains(selectedCourse)) {
                     view.setBackgroundColor(Color.TRANSPARENT);
                     selectedCourses.remove(selectedCourse);
-                }else{
+                } else {
                     // highlight the selected item
                     view.setBackgroundColor(Color.rgb(62, 175, 212));
                     selectedCourses.add(selectedCourse);
@@ -257,9 +291,9 @@ public class Broadcast extends Fragment {
 
 
         View view = ((Activity)context).getLayoutInflater().inflate(R.layout.dialog_priceset, null);
-        NumberPicker numPicker1 = (NumberPicker) view.findViewById(R.id.numberPicker);
-        NumberPicker numPicker2 = (NumberPicker) view.findViewById(R.id.numberPicker2);
-        NumberPicker numPicker3 = (NumberPicker) view.findViewById(R.id.numberPicker3);
+        final NumberPicker numPicker1 = (NumberPicker) view.findViewById(R.id.numberPicker);
+        final NumberPicker numPicker2 = (NumberPicker) view.findViewById(R.id.numberPicker2);
+        final NumberPicker numPicker3 = (NumberPicker) view.findViewById(R.id.numberPicker3);
 
         // initialize the num pickers
         numPicker1.setMinValue(10);
@@ -290,7 +324,9 @@ public class Broadcast extends Fragment {
 
             @Override
             public void onClick(View view) {
-                // close dialog, take chosen locations and display them
+                priceString = numPicker1.getValue() + "." + numPicker2.getValue() + "" + numPicker3.getValue();
+                // display price, close dialog
+                insertPriceText();
                 alert.cancel();
             }
         });
@@ -301,10 +337,25 @@ public class Broadcast extends Fragment {
         final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
 
         dialog.setCancelable(true);
+        Calendar rightNow = Calendar.getInstance();
+        final int currHour = rightNow.get(Calendar.HOUR_OF_DAY);
+        final int currMin = rightNow.get(Calendar.MINUTE);
+        broadcastDate = rightNow.get(Calendar.DATE);
+        broadcastMonth = rightNow.get(Calendar.MONTH);
+        broadcastYear = rightNow.get(Calendar.YEAR);
+
 
         View view = ((Activity)context).getLayoutInflater().inflate(R.layout.dialog_broadcastschedule, null);
-
+        timeLength = (TextView) view.findViewById(R.id.time);
+        final TextView timeError = (TextView) view.findViewById(R.id.timeError);
         Spinner spinner = (Spinner) view.findViewById(R.id.spinner);
+        SeekBar seekTime = (SeekBar) view.findViewById(R.id.seekTime);
+        timePicker = (TimePicker) view.findViewById(R.id.timePicker);
+        timePicker.setEnabled(false);
+
+
+
+
         // Create an ArrayAdapter using the string array and a default spinner layout
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getActivity(),
                 R.array.broadcast_schedule, android.R.layout.simple_spinner_item);
@@ -313,8 +364,7 @@ public class Broadcast extends Fragment {
         // Apply the adapter to the spinner
         spinner.setAdapter(adapter);
 
-        timePicker = (TimePicker) view.findViewById(R.id.timePicker);
-        timePicker.setEnabled(false);
+
 
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -337,6 +387,50 @@ public class Broadcast extends Fragment {
 
         });
 
+        timePicker.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
+            @Override
+            public void onTimeChanged(TimePicker view, int hourOfDay, int minute) {
+                Log.v("Time", timePicker.getCurrentHour() + ":" + timePicker.getCurrentMinute());
+            }
+
+        });
+
+        // default seekbar values
+        lengthMin = availableTime;
+        lengthHr = 0;
+        lengthAvailable = "30 min";
+
+        seekTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                availableTime = 30 + 30 * progress;
+                lengthMin = availableTime;
+                lengthHr = lengthMin / 60;
+                if (lengthHr > 0) {
+                    lengthMin = lengthMin % 60;
+                    lengthAvailable = (lengthMin > 0) ? lengthHr + " hours " + lengthMin + " min" : lengthHr + " hours ";
+                } else {
+                    lengthAvailable = lengthMin + " min";
+                }
+
+
+                timeLength.setText(lengthAvailable);
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+
+
         TextView title = new TextView(getActivity());
 
         // title info
@@ -354,11 +448,93 @@ public class Broadcast extends Fragment {
         Button setBtn = (Button) view.findViewById(R.id.setBtn);
 
         // on suggest button click
-        setBtn.setOnClickListener(new View.OnClickListener() {
+        setBtn.setOnClickListener(new View.OnClickListener(){
 
             @Override
             public void onClick(View view) {
                 // close dialog, show when available
+
+                if(!whenAvailable.equals("Now")){
+
+                    if(whenAvailable.equals("Today")){
+                        // throw error if user picks a date in the past
+                        if(timePicker.getCurrentHour() < currHour || (currHour == timePicker.getCurrentHour() &&  timePicker.getCurrentMinute() < currMin)){
+                            Log.v("Invalid Tie", "Past time selected");
+                            timeError.setVisibility(View.VISIBLE);
+                            return;
+                        }
+                    }else{
+                        // must be tomorrow so increment broadcast date
+                        broadcastDate += 1;
+
+                    }
+
+
+                    // get start time in ms
+                    Calendar calendar = Calendar.getInstance();
+                    Log.v("preset calendar", calendar.toString());
+                    Log.v("Calendar Year", broadcastYear+"" );
+                    Log.v("Calendar Month", broadcastMonth+"");
+                    Log.v("Calendar Date", broadcastDate+"");
+                    Log.v("Current Hour",  timePicker.getCurrentHour()+"");
+                    Log.v("Current Minute", timePicker.getCurrentMinute()+"");
+
+                    calendar.set(broadcastYear, broadcastMonth, broadcastDate, timePicker.getCurrentHour(), timePicker.getCurrentMinute());
+                    broadcastMS = calendar.getTimeInMillis();
+                    Log.v("MS Start Time:", broadcastMS+"");
+                    Log.v("Calendar time", ""+calendar.getTime());
+                    Log.v("Calendar", calendar.toString());
+
+
+                    String startTime;
+                    String endTime;
+                    int endHr = timePicker.getCurrentHour() + lengthHr;
+                    int endMin = timePicker.getCurrentMinute() + lengthMin;
+                    int startMin = timePicker.getCurrentMinute();
+                    String startMinStr = Integer.toString(startMin);
+                    String endMinStr = Integer.toString(endMin);
+
+                    //handle minute overflow
+                    if(endMin > 60){
+                        endHr += endMin/60;
+                        endMin = endMin%60;
+                        endMinStr = Integer.toString(endMin);
+                    }
+
+                    // append 0 in front of min if under 10 for time format
+                    if(startMin < 10){
+                        startMinStr = "0" + startMinStr;
+                    }
+
+                    if(endMin < 10){
+                        endMinStr = "0" + endMinStr;
+                        Log.v("endMinStr", endMinStr);
+                    }
+
+
+                    // PM time
+                    if(timePicker.getCurrentHour() > 12){
+                        startTime = timePicker.getCurrentHour() - 12 + ":" + startMinStr + "PM";
+                        // if added time crosses 24 hour mark
+                        if(endHr > 24){
+                            endTime = endHr - 24 + ":" + endMinStr + "AM";
+                        }else{
+                            endTime =  (endHr - 12 == 12) ? endHr - 12 + ":" + endMinStr + "AM" : endHr - 12 + ":" + endMinStr + "PM";
+                        }
+                    //AM time
+                    }else{
+                        startTime = timePicker.getCurrentHour()  + ":" + startMinStr + "AM";
+                        // if time crosses 12 hour mark
+                        if(endHr > 12){
+                            endTime = endHr - 12 + ":" + endMinStr +"PM";
+                        }else{
+                            endTime =  (endHr == 12) ? endHr + ":" + endMinStr + "PM" : endHr + ":" + endMinStr + "AM";
+                        }
+                    }
+
+                    lengthAvailable = startTime + "-" + endTime;
+                }
+
                 insertAvailText();
                 alert.cancel();
             }
@@ -475,6 +651,12 @@ public class Broadcast extends Fragment {
 
     public void insertAvailText(){
         availText.setText(whenAvailable+", "+lengthAvailable);
+    }
+
+    public void insertPriceText(){
+        priceText.setText(priceString + "  an hour");
+        hrRate = Double.parseDouble(priceString);
+        Log.v("Hour Rate", hrRate+"");
     }
 
 

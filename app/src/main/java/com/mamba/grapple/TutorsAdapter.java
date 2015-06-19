@@ -49,7 +49,7 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         RatingBar tutorRating = (RatingBar) convertView.findViewById(R.id.ratingBar);
 
         // populate the data into the list item template
-        tutorName.setText(tutor.firstName() + " " + tutor.firstName());
+        tutorName.setText(tutor.getName());
         tutorDistance.setText(tutor.getDistance(userLocation) + " mi");
         tutorPrice.setText("$" + String.valueOf(tutor.getPrice()));
         tutorRating.setRating(tutor.getRating());
