@@ -70,6 +70,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/seekTime"
             android:layout_gravity="center"
+            android:progress="3"
             android:max="10" />
 
         <TextView

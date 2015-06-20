@@ -10,22 +10,25 @@ import java.util.ArrayList;
  */
 
 public class TutorSession implements Parcelable {
-    public int price;
-    public int maxLength;
+    public double price;
+    public int period;
     public boolean available;
+    public long startTime; // session start date and time in ms
     public ArrayList<LocationObject> meetingSpots;
 
-    public TutorSession(int price, int maxLength, boolean available, ArrayList<LocationObject> meetingSpots){
+    public TutorSession(int price, int period, boolean available, ArrayList<LocationObject> meetingSpots, long startTime){
         this.price = price;
-        this.maxLength = maxLength;
+        this.period = period;
         this.available = available;
         this.meetingSpots = meetingSpots;
+        this.startTime = startTime;
     }
 
 
     protected TutorSession(Parcel in) {
-        price = in.readInt();
-        maxLength = in.readInt();
+        price = in.readDouble();
+        period = in.readInt();
+        startTime = in.readLong();
         available = in.readByte() != 0x00;
         meetingSpots = in.readArrayList(LocationObject.class.getClassLoader());
     }
@@ -37,8 +40,9 @@ public class TutorSession implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(price);
-        dest.writeInt(maxLength);
+        dest.writeDouble(price);
+        dest.writeInt(period);
+        dest.writeLong(startTime);
         dest.writeByte((byte) (available ? 0x01 : 0x00));
         dest.writeList(meetingSpots);
     }

@@ -76,6 +76,10 @@ public class LoginManager {
         return currentUser;
     }
 
+    public void storeBroadcastSettings(){
+
+    }
+
     public void updateCurrentUserDistance(int distance) {
         currentUser.setTravelDistance(distance);
         String user = gson.toJson(currentUser);

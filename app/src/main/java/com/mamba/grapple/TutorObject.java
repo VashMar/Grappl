@@ -5,7 +5,6 @@ import android.os.Parcelable;
 import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
-import com.google.gson.Gson;
 
 import java.text.DecimalFormat;
 
@@ -51,12 +50,12 @@ public class TutorObject implements Parcelable {
         return this.rating;
     }
 
-    public int getPrice(){
+    public double getPrice(){
         return this.session.price;
     }
 
     public int sessionLength(){
-        return this.session.maxLength;
+        return this.session.period;
     }
 
     public void setId(String ID){
@@ -140,7 +139,7 @@ public class TutorObject implements Parcelable {
         return "[id=" + id + " firstName=" + firstName + " lastName=" + lastName +
                 " rating=" + rating + " distance" + distance +
                 " location=" + location.lat + "," + location.lon + "]" +
-                " session= {price: " + session.price + ", minLength: " + session.maxLength + " }]";
+                " session= {price: " + session.price + ", minLength: " + session.period + " }]";
     }
 
 

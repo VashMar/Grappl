@@ -304,15 +304,16 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
             Log.v("tutorList", String.valueOf(tutorList.size()));
 
-            // dummy populate the empty list for now
-            if(tutorList.size() < 1){
-                dummyPopulate(tutorList);
+
+            if(tutorList.size() > 0){
+                Log.v("Tutor: " , tutorList.get(0).toString());
             }
 
             // send the tutorList along with login status on to the results activity
             intent.putParcelableArrayListExtra("tutorList", tutorList);
             intent.putExtra("distance", distance);
             startActivity(intent);
+            spinner.setVisibility(View.GONE);
         }
     }
 

@@ -7,7 +7,6 @@ import android.util.Log;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
@@ -126,12 +125,11 @@ public class UserObject implements Parcelable {
         return this.rating;
     }
 
-    public int getPrice(){
+    public double getPrice(){
         return this.session.price;
     }
-
     public int sessionLength(){
-        return this.session.maxLength;
+        return this.session.period;
     }
 
     public ArrayList<LocationObject> getMeetingSpots(){
@@ -157,6 +155,10 @@ public class UserObject implements Parcelable {
 
     public boolean isTutor(){ return this.tutoring; }
 
+    public boolean isAvailable(){return this.session.available;}
+
+    public long getSessionStart(){ return this.session.startTime; }
+
     public boolean hasProfilePic(){
         if(!this.profilePic.isEmpty() && this.profilePic != null){
             return true;
@@ -179,13 +181,12 @@ public class UserObject implements Parcelable {
     }
 
 
-//    public String toString(){
-//        return "[id=" + id + " firstName=" + firstName + " lastName=" + lastName +
-//                " rating=" + rating + " distance" + distance +
-//                " location=" + location.xPos + "," + location.yPos + "]" +
-//                " session= {price: " + session.price + ", minLength: " + session.maxLength + " }]";
-//    }
-//
+    public String toString(){
+        return "[id=" + id + " firstName=" + firstName + " lastName=" + lastName +
+                " rating=" + rating + " location=" + location.lat + "," + location.lon + "]" +
+                " session= {price: " + session.price + ", minLength: " + session.period + " , available: " + session.available + "}]";
+    }
+
 
 
 

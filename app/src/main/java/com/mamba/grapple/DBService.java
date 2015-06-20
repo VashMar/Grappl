@@ -211,7 +211,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     /****************************************************************************** Socket Emits *********************************************************************/
 
     // lets a tutor broadcast their availability
-    public void startBroadcast(long startTime, int length, double price, ArrayList<String> courses, ArrayList<LocationObject> selectedLocs){
+    public void startBroadcast(long startTime, int period, double price, ArrayList<String> courses, ArrayList<LocationObject> selectedLocs){
 
         JSONObject broadcastInfo = new JSONObject();
         JSONArray tutorCourses = new JSONArray();
@@ -230,7 +230,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
 
             broadcastInfo.put("startTime", startTime);
-            broadcastInfo.put("length", length);
+            broadcastInfo.put("period", period);
             broadcastInfo.put("price", price);
             broadcastInfo.put("courses", tutorCourses);
             broadcastInfo.put("meetingSpots", meetingSpots);

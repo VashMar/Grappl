@@ -40,30 +40,75 @@
         android:layout_below="@+id/tutorName"
         android:layout_toRightOf="@id/profilePic" />
 
+
     <TextView
-        android:id="@+id/tutorDistance"
-        android:textSize="20dp"
+        android:id="@+id/timeRange"
+        android:textSize="15dp"
         android:textColor="@color/text_gray"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_toRightOf="@id/profilePic"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
+        android:layout_width="wrap_content"
         android:layout_alignWithParentIfMissing="true"
-        android:gravity="right"
-        android:text="TutorDistance" />
+        android:layout_height="wrap_content"
+
+        android:text="Now - 12:00Pm"
+        android:layout_alignParentBottom="true"
+        android:layout_alignRight="@+id/tutorAvailability"
+        android:layout_alignEnd="@+id/tutorAvailability" />
+
+
+    <TextView
+        android:id="@+id/tutorAvailability"
+        android:textSize="15dp"
+        android:textColor="@color/text_gray"
+        android:layout_width="wrap_content"
+        android:layout_alignWithParentIfMissing="true"
+        android:layout_height="wrap_content"
+
+        android:text="Available"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_above="@+id/timeRange" />
+
+
+
+    <ImageView android:id="@+id/availableIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/availableicon"
+        android:paddingBottom="4dp"
+        android:paddingRight="6dp"
+        android:layout_above="@+id/timeRange"
+        android:layout_toLeftOf="@+id/tutorAvailability"
+        android:layout_toStartOf="@+id/tutorAvailability" />
+
+    <ImageView android:id="@+id/unavailableIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/timeRange"
+        android:src="@drawable/unavailableicon"
+        android:layout_toLeftOf="@id/tutorAvailability"
+        android:layout_toStartOf="@id/tutorAvailability"
+        android:paddingBottom="4dp"
+        android:paddingRight="6dp"
+        android:visibility="gone"
+
+        />
+
+
+
+
+
 
     <TextView
         android:id="@+id/tutorPrice"
         android:textSize="20dp"
         android:textColor="@color/text_gray"
-        android:layout_width="fill_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_toRightOf="@id/profilePic"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
         android:layout_alignWithParentIfMissing="true"
         android:gravity="center_vertical"
-        android:text="TutorPrice" />
+        android:text="TutorPrice"
+        android:layout_alignParentBottom="true"
+        android:layout_toRightOf="@+id/profilePic"
+        android:layout_toEndOf="@+id/profilePic" />
 
 </RelativeLayout>

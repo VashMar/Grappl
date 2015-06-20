@@ -37,7 +37,7 @@ public class Broadcast extends Fragment {
 
 
     private OnFragmentInteractionListener mListener;
-    private int availableTime = 30;
+
 
 
     private LocationsAdapter locationsAdapter;
@@ -45,17 +45,11 @@ public class Broadcast extends Fragment {
     private ArrayList<LocationObject> selectedLocations;
     private LocationObject selectedLocation;
 
-    private ArrayList<String> selectedCourses;
-    private String selectedCourse;
 
 
-
-    SeekBar seekprice;
-    SeekBar seektime;
-    SeekBar seekdist;
+    // settings view elements
     TextView timeLength;
     TextView availText;
-    TextView distView;
     TextView locText;
     TextView courseText;
     TextView priceText;
@@ -64,22 +58,32 @@ public class Broadcast extends Fragment {
     ImageButton priceButton;
     ImageButton courseButton;
     Button broadcastButton;
-    View selected;
-
-    TimePicker timePicker;
 
 
-    //dialog variables
+
+    // broadcast variables
+    private int availableTime;
+    private double hrRate;
+    private long broadcastMS;
+    private ArrayList<String> selectedCourses;
+    private String selectedCourse;
+
+
+    //dialog variables (set to defaults)
     private String whenAvailable;
     private String lengthAvailable;
     private int lengthHr;
     private int lengthMin;
     private String priceString;
-    private double hrRate;
     private int broadcastDate;
     private int broadcastMonth;
     private int broadcastYear;
-    private long broadcastMS;
+
+
+
+    // Date/Time related
+    TimePicker timePicker;
+    Calendar rightNow;
 
 
     public Broadcast(){
@@ -95,15 +99,26 @@ public class Broadcast extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState){
+
+        //initialize  presets
+        selectedLocations = new ArrayList<LocationObject>();
+        selectedCourses = new ArrayList<String>();
+        whenAvailable = "Now";
+        availableTime = 120;
+        hrRate = 10.00;
+        lengthAvailable = "2 hours";
+        lengthHr = 0;
+        lengthMin = availableTime;
+
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_broadcast, container, false);
     }
 
     @Override
     public void onStart(){
+        Log.v("Broadcast Settings", "Started");
         super.onStart();
-        selectedLocations = new ArrayList<LocationObject>();
-        selectedCourses = new ArrayList<String>();
+
         broadcastButton = (Button) getView().findViewById(R.id.broadcastButton);
         courseButton  = (ImageButton) getView().findViewById(R.id.courseButton);
         locationButton = (ImageButton) getView().findViewById(R.id.locationButton);
@@ -166,6 +181,7 @@ public class Broadcast extends Fragment {
 
     @Override
     public void onResume(){
+        Log.v("Broadcast Settings", "Resumed");
         super.onResume();
         // if the selected locations list isn't empty, show them
         if(selectedLocations.size() > 0){
@@ -178,13 +194,20 @@ public class Broadcast extends Fragment {
 
 
     public void startBroadcast() {
-        if (selectedLocations.size() > 0) {
+        if (selectedLocations.size() > 0 && selectedCourses.size() > 0) {
             Log.v("Starting Broadcast..", "Broadcast initiated");
             Log.v("Broadcast MS", broadcastMS+"");
             Log.v("Available Time", availableTime+"");
             Log.v("Hourly Rate", hrRate+"");
             Log.v("Selected Course", selectedCourses+"");
             Log.v("Selected Locations", selectedLocations+"");
+
+
+            if(whenAvailable.equals("Now")){
+                rightNow = Calendar.getInstance();
+                broadcastMS = rightNow.getTimeInMillis(); // get the latest time before broadcasting
+            }
+
             ((Main) getActivity()).mService.startBroadcast(broadcastMS, availableTime, hrRate, selectedCourses, selectedLocations);
 //            ((Main) getActivity()).session.updateCurrentUserDistance(distance);
             Intent intent = new Intent(getActivity(), Waiting.class);
@@ -192,7 +215,14 @@ public class Broadcast extends Fragment {
             startActivity(intent);
         }else {
             // we can only broadcast if the tutor has a selected a meeting spot
-            locText.setError("You must choose a preferred meeting spot!");
+            if(selectedCourses.size() < 1){
+                courseText.setError("You must choose a course!");
+            }
+
+            if(selectedLocations.size() < 1){
+                locText.setError("You must choose a preferred meeting spot!");
+            }
+
         }
     }
 
@@ -337,7 +367,7 @@ public class Broadcast extends Fragment {
         final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
 
         dialog.setCancelable(true);
-        Calendar rightNow = Calendar.getInstance();
+        rightNow = Calendar.getInstance();
         final int currHour = rightNow.get(Calendar.HOUR_OF_DAY);
         final int currMin = rightNow.get(Calendar.MINUTE);
         broadcastDate = rightNow.get(Calendar.DATE);
@@ -395,10 +425,6 @@ public class Broadcast extends Fragment {
 
         });
 
-        // default seekbar values
-        lengthMin = availableTime;
-        lengthHr = 0;
-        lengthAvailable = "30 min";
 
         seekTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
             @Override
