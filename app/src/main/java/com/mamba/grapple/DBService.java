@@ -113,8 +113,9 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         socket.on("startSessionRequest", startSessionRequest);
         socket.on("grapple", grapple);
         socket.on("removeAvailableDone", removeAvailableDone);
-
-
+        socket.on("grapplFail", grapplFail);
+        socket.on("grapplSuccess", grapplSuccess);
+        socket.on(Socket.EVENT_DISCONNECT, reconnect);
         socket.connect();
     }
 
@@ -152,8 +153,9 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     private void setGrapple(UserObject user)
     {
-       inGrapple = true;
+        inGrapple = true;
         grappledUser = user;
+
     }
 
     public boolean grappleState(){
@@ -217,6 +219,12 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         JSONArray tutorCourses = new JSONArray();
         JSONArray meetingSpots = new JSONArray();
 
+        if (socket == null || !socket.connected()){
+            Log.v("Socket is null", "Reconnecting..");
+            connectSocket();
+
+        }
+
         try{
 
             for(String course : courses){
@@ -276,6 +284,17 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
         catch(JSONException ex){
             Log.e("grapple", "could build and send json");
+        }
+    }
+
+    public void grapplSuccess(String id){
+        try{
+            JSONObject data = new JSONObject();
+            data.put("id", id);
+            Log.v("Emitting..", "grapplSuccess");
+            socket.emit("grapplSuccess", data);
+        }catch(JSONException e){
+            e.printStackTrace();
         }
     }
 
@@ -385,6 +404,40 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
     };
 
+    private Emitter.Listener grapplFail = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            Log.v("Emit Received..", "grapplFail");
+            Intent intent = new Intent("meetupReceiver");
+            intent.putExtra("responseType", "grapplFail");
+            clientBroadcast(intent);
+        }
+    };
+
+
+    private Emitter.Listener grapplSuccess = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            Log.v("Emit Received..", "grapplSuccess");
+            Intent intent = new Intent("meetupReceiver");
+            intent.putExtra("responseType", "grapplSuccess");
+            clientBroadcast(intent);
+        }
+    };
+
+
+
+
+
+    private Emitter.Listener reconnect = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            Log.v("Socket Disconnected", "Reconnecting..");
+            socket.connect();
+        }
+    };
+
+
     private Emitter.Listener locationUpdate = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
@@ -432,11 +485,18 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 // set grapple state and track user
                 setGrapple(grappledUser);
 
+                // emit a grapplSuccess to grappler
+                grapplSuccess(grappledUser.getId());
+
                 // send to the waiting receiver on grapple
                 Intent intent = new Intent("waitingReceiver");
                 intent.putExtra("responseType", "grapple");
                 intent.putExtra("user", grappledUser);
                 clientBroadcast(intent);
+
+                // stop broadcasting
+                endBroadcast();
+
             }catch(JSONException e){
                 e.printStackTrace();
             }

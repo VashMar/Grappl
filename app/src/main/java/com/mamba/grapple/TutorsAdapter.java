@@ -68,7 +68,7 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
 
         // get the date data from the received start time
         cal.setTimeInMillis(startTime);
-        int startHr = cal.get(Calendar.HOUR);
+        int startHr = cal.get(Calendar.HOUR_OF_DAY);
         int startMin = cal.get(Calendar.MINUTE);
         int endMin = startMin + tutor.sessionLength();
         int endHr = startHr;
@@ -76,6 +76,8 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         String startStr =  String.valueOf(startMin);;
         String endStr = endMin+"";
         String timeStr;
+
+        Log.v("startHr", startHr+"");
 
 
         // check if AM OR PM for start
@@ -102,6 +104,7 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
             }
         }
 
+        Log.v("endHr", endHr+"");
         // handle AM or PM for availability end time and build the string
         if(endHr > 24){
             endStr = endHr - 24 + ":" + endMin + "AM";
@@ -115,6 +118,8 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         if(tutor.isAvailable()) {
             tutorAvailability.setText("Available");
             timeStr = "Now - " + endStr;
+            availableIcon.setVisibility(View.VISIBLE);
+            unavailableIcon.setVisibility(View.GONE);
         }else{
              // show full range of begin/end
              timeStr = startStr + " - " + endStr;
@@ -128,7 +133,7 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
                 tutorAvailability.setText("Tomorrow");
                 tutorAvailability.setTextSize(13);
             } else {
-                tutorAvailability.setText("Today," + timeRange);
+                tutorAvailability.setText("Today");
 
             }
         }
@@ -138,19 +143,6 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         timeRange.setTextSize(13);
 
 
-
-
-        // TEMP DUMMY TUTORS
-        switch (tutor.firstName()){
-            case "Jess": tutorPic.setImageResource(R.drawable.jess);
-                break;
-            case "Eric": tutorPic.setImageResource(R.drawable.eric);
-                break;
-            case "Robert": tutorPic.setImageResource(R.drawable.robert);
-                break;
-            case "Nadia": tutorPic.setImageResource(R.drawable.nadia);
-                break;
-        }
 
         // return the completed view to render
         return convertView;

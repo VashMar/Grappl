@@ -107,6 +107,11 @@ public class UserObject implements Parcelable {
     public String getId() {
         return this.id;
     }
+
+    public void setId(String ID){
+        this.id = ID;
+    }
+
     public void setTravelDistance(float distance){
         this.distance = distance;
     }
@@ -136,14 +141,8 @@ public class UserObject implements Parcelable {
         return this.session.meetingSpots;
     }
 
-    public void setId(String ID){
-        this.id = ID;
-    }
 
 
-    public String getID(){
-        return this.id;
-    }
 
     public double getLatitude(){
         return this.location.lat;
@@ -181,15 +180,15 @@ public class UserObject implements Parcelable {
     }
 
 
-    public String toString(){
-        return "[id=" + id + " firstName=" + firstName + " lastName=" + lastName +
-                " rating=" + rating + " location=" + location.lat + "," + location.lon + "]" +
-                " session= {price: " + session.price + ", minLength: " + session.period + " , available: " + session.available + "}]";
-    }
-
-
-
-
+//    public String toString(){
+//        return "[id=" + id + " firstName=" + firstName + " lastName=" + lastName +
+//                " rating=" + rating + " location=" + location.lat + "," + location.lon + "]" +
+//                " session= {price: " + session.price + ", minLength: " + session.period + " , available: " + session.available + "}]";
+//    }
+//
+//
+//
+//
 
 
     /********************************* Parcel Code  *************************************************************************/

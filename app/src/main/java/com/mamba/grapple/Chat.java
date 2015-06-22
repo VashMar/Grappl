@@ -123,13 +123,8 @@ public class Chat extends Activity {
         Log.v("Chat Activity", "Created");
 
         retrieveInfo(); // gets info about other chat member
-        dummyPopulate();
 
-        // Register to receive messages.
-        // We are registering an observer (mMessageReceiver) to receive Intents
-        // with actions named "custom-event-name".
-        LocalBroadcastManager.getInstance(this).registerReceiver(chatReceiver,
-                new IntentFilter("chatReceiver"));
+
 
 
         messagesContainer = (ListView) findViewById(R.id.list_view_messages);
@@ -162,14 +157,14 @@ public class Chat extends Activity {
         });
 
 
-        messagesContainer.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+        messagesContainer.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
 
                 MessageObject message = messageList.get(position);
 
                 // handle if location
-                if(message.isLocation()){
+                if (message.isLocation()) {
                     Intent intent = new Intent(Chat.this, MapDialog.class);
                     intent.putExtra("meetingPoint", message.getLocation());
                     intent.putExtra("isSelf", message.isSelf());
@@ -178,6 +173,8 @@ public class Chat extends Activity {
                 }
             }
         });
+
+
 
     }
 
@@ -189,24 +186,12 @@ public class Chat extends Activity {
         session = new LoginManager(getApplicationContext());
         currentUser = session.getCurrentUser();
 
-        // bind to service
-        Intent intent = new Intent(this, DBService.class);
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-
     }
 
 
     @Override
     protected void onPause(){
         super.onPause();
-        // Unbind from the service
-        if (mBound){
-            Log.v("Unbinding Service", "Chat Activity");
-            unbindService(mConnection);
-            mBound = false;
-        }
-        //unregister the receiver
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(chatReceiver);
     }
 
 
@@ -214,11 +199,27 @@ public class Chat extends Activity {
     @Override
     protected void onStart(){
         super.onStart();
+        // bind to service
+        Intent intent = new Intent(this, DBService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+
+        // Register to receive messages.
+        LocalBroadcastManager.getInstance(this).registerReceiver(chatReceiver,
+                new IntentFilter("chatReceiver"));
     }
 
     @Override
     protected void onStop(){
         super.onStop();
+        // Unbind from the service
+        if (mBound){
+            Log.v("Unbinding Service", "Chat Activity");
+            unbindService(mConnection);
+            mBound = false;
+        }
+
+        // Unregister the receiver
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(chatReceiver);
     }
 
     @Override
@@ -240,6 +241,7 @@ public class Chat extends Activity {
 
             recipient = extras.getParcelable("user");
             getActionBar().setTitle(recipient.getName());
+            getActionBar().setIcon(R.drawable.user_icon);
 
             // mark that grapple already happened
             if(extras.containsKey("beenGrappled")){
@@ -314,36 +316,36 @@ public class Chat extends Activity {
 
     }
 
-    public void dummyPopulate(){
-
-        locationList =  new ArrayList<LocationObject>();
-        final Context context = getApplicationContext();
-
-
-
-        Thread thread = new Thread(new Runnable(){
-            @Override
-            public void run(){
-                // create dummy location objects for now
-                final LocationObject loc1 = new LocationObject("College Library", "600 N Park St, Madison, WI", context);
-                final LocationObject loc2 = new LocationObject("Union South", "1308 W Dayton St, Madison, WI", context);
-                final LocationObject loc3 = new LocationObject("Chemistry Building", "1101 University Ave, Madison, WI", context);
-                final LocationObject loc4 = new LocationObject("Grainger Hall", "975 University Ave, Madison, WI", context);
-
-                locationList.add(loc1);
-                locationList.add(loc2);
-                locationList.add(loc3);
-                locationList.add(loc4);
-
-
-            }
-        });
-
-
-        thread.start();
-
-    }
-
+//    public void dummyPopulate(){
+//
+//        locationList =  new ArrayList<LocationObject>();
+//        final Context context = getApplicationContext();
+//
+//
+//
+//        Thread thread = new Thread(new Runnable(){
+//            @Override
+//            public void run(){
+//                // create dummy location objects for now
+//                final LocationObject loc1 = new LocationObject("College Library", "600 N Park St, Madison, WI", context);
+//                final LocationObject loc2 = new LocationObject("Union South", "1308 W Dayton St, Madison, WI", context);
+//                final LocationObject loc3 = new LocationObject("Chemistry Building", "1101 University Ave, Madison, WI", context);
+//                final LocationObject loc4 = new LocationObject("Grainger Hall", "975 University Ave, Madison, WI", context);
+//
+//                locationList.add(loc1);
+//                locationList.add(loc2);
+//                locationList.add(loc3);
+//                locationList.add(loc4);
+//
+//
+//            }
+//        });
+//
+//
+//        thread.start();
+//
+//    }
+//
 
 
     /**************************************************************************** Options Menu Management ******************************************************************/

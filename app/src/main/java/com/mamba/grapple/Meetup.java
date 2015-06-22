@@ -82,7 +82,8 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     LoginManager session;
 
     ArrayList<LocationObject> meetingSpots;
-
+    String selectedSpot;
+    Button grappleButton;
 
     // receiver to handle server responses for this activity
     private BroadcastReceiver meetupReceiver = new BroadcastReceiver(){
@@ -98,9 +99,17 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 Log.v("Meetup Activity", "received response: " + responseType);
 
                 // if there's a new message add it to the list and display
-                if(responseType == "locationUpdate"){
+                if(responseType.equals("locationUpdate")){
                     //
 
+                }
+
+                if(responseType.equals("grapplFail")){
+                    grapplFail();
+                }
+
+                if(responseType.equals("grapplSuccess")){
+                    grapplSuccess();
                 }
             }
         }
@@ -128,7 +137,6 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 invalidateOptionsMenu();
 
                 // grab dynamic layout items
-                Button grappleButton = (Button) findViewById(R.id.grappleButton);
                 ImageButton chatButton = (ImageButton) findViewById(R.id.chatButton);
 
                 // hide the grapple button and show the session/chat buttons
@@ -179,65 +187,62 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
         session = new LoginManager(getApplicationContext());
 
-
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
 
+        grappleButton = (Button) findViewById(R.id.grappleButton);
+        grappleButton.setEnabled(false);
 
 
         // get the tutor data
         retrieveTutorInfo();
 
 
-        // Register to receive messages.
-        // We are registering an observer (mMessageReceiver) to receive Intents
-        // with actions named "custom-event-name".
-        LocalBroadcastManager.getInstance(this).registerReceiver(mMessageReceiver,
-                new IntentFilter("meetupReceiver"));
+
 
 
     }
 
-    public void onResume() {
-        super.onResume();
+    public void onStart() {
+        super.onStart();
         Log.v("Tutor View", "Resumed");
         Intent intent = new Intent(this, DBService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
         Log.v("Service Bound", "Tutor select bound to service");
+
+        // Register to receive messages.
+        // We are registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "custom-event-name".
+        LocalBroadcastManager.getInstance(this).registerReceiver(meetupReceiver,
+                new IntentFilter("meetupReceiver"));
     }
 
-    protected void onPause(){
-        super.onPause();
+    protected void onStop(){
+        super.onStop();
         // Unbind from the service
         if (mBound){
             Log.v("Unbinding Service", "Meetup Activity");
             unbindService(mConnection);
             mBound = false;
         }
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(meetupReceiver);
     }
 
     @Override
     protected void onDestroy() {
         // Unregister since the activity is about to be closed.
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver);
         super.onDestroy();
     }
 
     @Override
     public void onBackPressed(){
-        endGrapplePrompt();
-    }
-
-    // Our handler for received Intents. This will be called whenever an Intent
-    // with an action named "custom-event-name" is broadcasted.
-    private BroadcastReceiver mMessageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            // Get extra data included in the Intent
-            String message = intent.getStringExtra("message");
-            Log.d("receiver", "Got message: " + message);
+        if(mService.grappleState()){
+            endGrapplePrompt();
+        }else{
+            super.onBackPressed();
         }
-    };
 
+    }
 
     // response when meeting point is accepted
     @Override
@@ -317,6 +322,20 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
             }
         });
 
+
+        gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                if(!mService.grappleState()){
+                    grappleButton.setEnabled(true);
+                    grappleButton.setTextColor(Color.WHITE);
+                    selectedSpot =  marker.getTitle();
+                }
+
+                return false;
+            }
+        });
+
 //        if (mLastLocation != null) {
 //            LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
 //
@@ -349,11 +368,12 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
     // enters the chat with the tutor
     public void grappleTutor(View view){
-        Log.v("grappleEvent", "tutor id = " + otherUser.getID());
-        mService.startGrapple(otherUser);
-        Intent intent = new Intent(this, Chat.class);
-        intent.putExtra("user", otherUser);
-        startActivity(intent);
+        Log.v("grappleEvent", "tutor id = " + otherUser.getId());
+        startGrapplePrompt();
+//        mService.startGrapple(otherUser);
+//        Intent intent = new Intent(this, Chat.class);
+//        intent.putExtra("user", otherUser);
+//        startActivity(intent);
     }
 
     public void retrieveTutorInfo() {
@@ -364,7 +384,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
             // Look up view for data population
             TextView tutorName = (TextView) findViewById(R.id.tutorName);
-            TextView tutorDistance = (TextView) findViewById(R.id.tutorDistance);
+//            TextView tutorDistance = (TextView) findViewById(R.id.tutorDistance);
             TextView tutorPrice = (TextView) findViewById(R.id.tutorPrice);
 
             RatingBar tutorRating = (RatingBar) findViewById(R.id.ratingBar);
@@ -375,28 +395,58 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
             // populate the data
             tutorName.setText(otherUser.getName());
-            tutorDistance.setText(otherUser.getDistance(mLastLocation) + " mi");
-            tutorPrice.setText("$" + String.valueOf(otherUser.getPrice()));
+//            tutorDistance.setText(otherUser.getDistance(mLastLocation) + " mi");
+            tutorPrice.setText("$" +  String.format("%.2f", otherUser.getPrice()));
             tutorRating.setRating(otherUser.getRating());
 
-
-            // TEMP DUMMY TUTORS
-            switch (otherUser.firstName()) {
-                case "Jess":
-                    tutorPic.setImageResource(R.drawable.jess);
-                    break;
-                case "Eric":
-                    tutorPic.setImageResource(R.drawable.eric);
-                    break;
-                case "Robert":
-                    tutorPic.setImageResource(R.drawable.robert);
-                    break;
-                case "Nadia":
-                    tutorPic.setImageResource(R.drawable.nadia);
-                    break;
-            }
         }
     }
+
+
+    public void grapplSuccess(){
+        Intent intent = new Intent(Meetup.this, Chat.class);
+        intent.putExtra("user", otherUser);
+        startActivity(intent);
+    }
+
+    /************************************  Alert Dialogs  ***************************************************************************/
+
+    private void grapplFail(){
+        new AlertDialog.Builder(this)
+                .setTitle("Unable to Grappl" + otherUser.firstName())
+                .setMessage(otherUser.firstName() + "is no longer broadcasting")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+
+    }
+
+    // launches alert dialog signalling grapple will end
+    private void startGrapplePrompt(){
+        new AlertDialog.Builder(this)
+                .setTitle("Grappl " + otherUser.firstName() + " ?")
+                .setMessage("Request to meetup with " + otherUser.firstName() + " at " + selectedSpot +"?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int which) {
+                        // continue with ending broadcast
+                        mService.startGrapple(otherUser);
+
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // do nothing
+
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
 
     // launches alert dialog signalling grapple will end
     private void endGrapplePrompt(){
@@ -420,6 +470,8 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 .show();
     }
 
+
+    /************************************  Triangulation  ***************************************************************************/
 
     private LatLng findCenter(List<LatLng> coordinates){
 

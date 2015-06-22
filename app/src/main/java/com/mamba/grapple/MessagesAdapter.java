@@ -72,10 +72,6 @@ public class MessagesAdapter extends BaseAdapter {
                 convertView = mInflater.inflate(R.layout.chat_message_left,
                         null);
             }
-
-
-            ImageView profilePic = (ImageView) convertView.findViewById(R.id.profilePic);
-            profilePic.setImageResource(R.drawable.jess);
         }
 
         // TODO: have a different message type for notification messages

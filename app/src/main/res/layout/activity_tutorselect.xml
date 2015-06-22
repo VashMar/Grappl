@@ -18,7 +18,7 @@
             android:layout_height="100dp"
             android:background="#000000"
             android:id="@+id/imageView"
-            android:src="@drawable/jess"
+            android:src="@drawable/user_icon"
             android:layout_alignParentTop="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true" />
@@ -27,9 +27,9 @@
         <TextView
             android:id="@+id/tutorName"
             android:layout_width="wrap_content"
-            android:layout_height="20dip"
+            android:layout_height="30dip"
             android:singleLine="true"
-            android:text="Jess Kannon"
+            android:text=""
             android:ellipsize="marquee"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:layout_alignParentTop="true"
@@ -51,6 +51,67 @@
             android:layout_marginLeft="3dp"
         />
 
+
+
+
+
+        <TextView
+            android:id="@+id/tutorAvailability"
+            android:textSize="15dp"
+            android:textColor="@color/text_gray"
+            android:layout_width="wrap_content"
+            android:layout_alignWithParentIfMissing="true"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-41dip"
+            android:text="Available"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:layout_below="@+id/ratingBar" />
+
+        <TextView
+            android:id="@+id/timeRange"
+            android:textSize="15dp"
+            android:textColor="@color/text_gray"
+            android:layout_width="wrap_content"
+            android:layout_alignWithParentIfMissing="true"
+            android:layout_height="wrap_content"
+
+            android:text="Now - 12:00Pm"
+            android:layout_below="@id/tutorAvailability"
+            android:layout_alignRight="@+id/tutorAvailability"
+            android:layout_alignEnd="@+id/tutorAvailability" />
+
+            <!--android:layout_above="@+id/timeRange" />-->
+
+
+
+        <ImageView android:id="@+id/availableIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/availableicon"
+            android:paddingBottom="4dp"
+            android:paddingRight="6dp"
+            android:layout_above="@+id/timeRange"
+            android:layout_toLeftOf="@+id/tutorAvailability"
+            android:layout_toStartOf="@+id/tutorAvailability" />
+
+        <ImageView android:id="@+id/unavailableIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/timeRange"
+            android:src="@drawable/unavailableicon"
+            android:layout_toLeftOf="@id/tutorAvailability"
+            android:layout_toStartOf="@id/tutorAvailability"
+            android:paddingBottom="4dp"
+            android:paddingRight="6dp"
+            android:visibility="gone"
+
+            />
+
+
+
+
+
         <TextView
             android:id="@+id/tutorPrice"
             android:layout_width="wrap_content"
@@ -61,24 +122,24 @@
             android:layout_below="@+id/ratingBar"
             android:layout_toRightOf="@+id/imageView"
             android:layout_toEndOf="@+id/imageView"
-            android:layout_marginTop="-25dip"
+            android:layout_marginTop="-30dip"
             android:layout_marginLeft="3dp"
          />
 
-        <TextView
-            android:id="@+id/tutorDistance"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1.5 mi"
-            android:textSize="20dp"
-            android:textColor="@color/text_gray"
-            android:layout_marginRight="5dp"
-            android:layout_marginEnd="5dp"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="-25dip"
-            android:layout_below="@+id/ratingBar"
-        />
+        <!--<TextView-->
+            <!--android:id="@+id/tutorDistance"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:text="1.5 mi"-->
+            <!--android:textSize="20dp"-->
+            <!--android:textColor="@color/text_gray"-->
+            <!--android:layout_marginRight="5dp"-->
+            <!--android:layout_marginEnd="5dp"-->
+            <!--android:layout_alignParentRight="true"-->
+            <!--android:layout_alignParentEnd="true"-->
+            <!--android:layout_marginTop="-25dip"-->
+            <!--android:layout_below="@+id/ratingBar"-->
+        <!--/>-->
 
     </RelativeLayout>
 
@@ -96,12 +157,11 @@
         android:layout_marginLeft="-5dip"
         android:layout_marginRight="-5dip"
         android:layout_marginTop="-5dip"
-        android:layout_marginBottom="-25dip"
         android:id="@+id/grappleButton"
         android:onClick="grappleTutor"
         android:background="@color/theme"
-        android:textColor="@color/white"
-        android:drawableTop="@drawable/launcher"
+        android:textColor="@color/title_gray"
+        android:text="Grappl"
     />
 
 

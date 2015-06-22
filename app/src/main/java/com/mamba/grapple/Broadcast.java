@@ -78,6 +78,8 @@ public class Broadcast extends Fragment {
     private int broadcastDate;
     private int broadcastMonth;
     private int broadcastYear;
+    private String startTime;
+    private String endTime = "";
 
 
 
@@ -110,6 +112,9 @@ public class Broadcast extends Fragment {
         lengthHr = 0;
         lengthMin = availableTime;
 
+
+
+
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_broadcast, container, false);
     }
@@ -119,6 +124,7 @@ public class Broadcast extends Fragment {
         Log.v("Broadcast Settings", "Started");
         super.onStart();
 
+        // grab UI elements
         broadcastButton = (Button) getView().findViewById(R.id.broadcastButton);
         courseButton  = (ImageButton) getView().findViewById(R.id.courseButton);
         locationButton = (ImageButton) getView().findViewById(R.id.locationButton);
@@ -128,7 +134,9 @@ public class Broadcast extends Fragment {
         courseText = (TextView) getView().findViewById(R.id.courseText);
         availText = (TextView) getView().findViewById(R.id.availText);
         priceText = (TextView) getView().findViewById(R.id.priceText);
-        dummyPopulate();
+
+        // get meeting locations
+        locPopulate();
 
         // handles broadcast button click
         broadcastButton.setOnClickListener(new View.OnClickListener(){
@@ -206,12 +214,41 @@ public class Broadcast extends Fragment {
             if(whenAvailable.equals("Now")){
                 rightNow = Calendar.getInstance();
                 broadcastMS = rightNow.getTimeInMillis(); // get the latest time before broadcasting
+
+                if(endTime.length() < 1){
+                    // by default the end time is 2 hours from now
+                    int timeHr = rightNow.get(Calendar.HOUR_OF_DAY) + 2;
+                    int timeMin = rightNow.get(Calendar.MINUTE);
+                    endTime = timeMin+"";
+
+                    if(timeMin < 10){
+                        endTime = "0" + timeMin;
+                    }
+
+                    if(timeHr >= 24){
+                        timeHr -= 24;
+                        endTime = (timeHr == 0) ? "12:" + endTime + "AM" : timeHr + ":" + endTime + "AM";
+                    }else if(timeHr >= 12){
+                        timeHr -= 12;
+                        endTime = (timeHr == 0) ? "12:" + endTime + "PM" : timeHr + ":" + endTime + "PM";
+                    }else{
+                        endTime = timeHr + ":" +  endTime +"AM";
+                    }
+                }
+
+                endTime += " Today";
+            }else{
+                endTime += " " + whenAvailable;
             }
+
 
             ((Main) getActivity()).mService.startBroadcast(broadcastMS, availableTime, hrRate, selectedCourses, selectedLocations);
 //            ((Main) getActivity()).session.updateCurrentUserDistance(distance);
             Intent intent = new Intent(getActivity(), Waiting.class);
             intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
+            intent.putExtra("hrRate", hrRate);
+            intent.putStringArrayListExtra("selectedCourses", selectedCourses);
+            intent.putExtra("endTime", endTime);
             startActivity(intent);
         }else {
             // we can only broadcast if the tutor has a selected a meeting spot
@@ -512,8 +549,7 @@ public class Broadcast extends Fragment {
                     Log.v("Calendar", calendar.toString());
 
 
-                    String startTime;
-                    String endTime;
+
                     int endHr = timePicker.getCurrentHour() + lengthHr;
                     int endMin = timePicker.getCurrentMinute() + lengthMin;
                     int startMin = timePicker.getCurrentMinute();
@@ -686,7 +722,7 @@ public class Broadcast extends Fragment {
     }
 
 
-    public void dummyPopulate(){
+    public void locPopulate(){
 
         locationList =  new ArrayList<LocationObject>();
         final Context context = getActivity().getApplicationContext();

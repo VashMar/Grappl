@@ -19,6 +19,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -34,6 +35,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,8 +44,9 @@ import java.util.List;
 public class Waiting extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
     private MapFragment mapFragment;
-    Button grappleButton;
+
     LoginManager session;
+    UserObject currentUser;
 
     private Location mLastLocation;
 
@@ -50,8 +54,18 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     private boolean mBound = false;
     DBService mService;
 
+
+    TextView tutorName;
+    TextView tutorPrice;
+    TextView tutorCourses;
+    TextView tutorAvailability;
+    Button cancelButton;
+
     // list of meeting spots on map
     private ArrayList<LocationObject> meetingSpots;
+    private ArrayList<String> selectedCourses;
+    private double hrRate;
+    private String endTime = "";
 
     // receiver to handle server responses for this activity
     private BroadcastReceiver waitingReceiver = new BroadcastReceiver(){
@@ -113,21 +127,51 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_tutorselect);
+        setContentView(R.layout.activity_waiting);
+
+        // track user session data
+        session = new LoginManager(getApplicationContext());
+        currentUser = session.getCurrentUser();
 
         Bundle extras = getIntent().getExtras();
         if (extras != null ){
             meetingSpots = extras.getParcelableArrayList("meetingSpots");
+            selectedCourses = extras.getStringArrayList("selectedCourses");
+            hrRate = extras.getDouble("hrRate");
+            endTime = extras.getString("endTime");
         }
 
-        getActionBar().setTitle("Waiting..");
+        getActionBar().setTitle("Waiting...");
+
+        // create readable string from courses list
+        String courseString = "";
+        for(int i = 0; i < selectedCourses.size(); i++){
+            courseString += selectedCourses.get(i);
+            if(i < selectedCourses.size() - 1){
+                courseString += ", ";
+            }
+        }
+
+        // load ui elements
+        cancelButton = (Button) findViewById(R.id.cancelButton);
+        tutorName = (TextView) findViewById(R.id.tutorName);
+        tutorPrice = (TextView) findViewById(R.id.tutorPrice);
+        tutorCourses = (TextView) findViewById(R.id.tutorCourses);
+        tutorAvailability = (TextView) findViewById(R.id.tutorAvailability);
+
+        //update UI elements
+        tutorName.setText(currentUser.getName());
+        tutorPrice.setText("Hourly Rate: $" + String.format("%.2f", hrRate));
+        tutorCourses.setText("Courses: " + courseString);
+        tutorAvailability.setText("Available Until: " + endTime);
 
 
-        grappleButton = (Button) findViewById(R.id.grappleButton);
-        grappleButton.setVisibility(View.GONE);
-
-        // track user session data
-        session = new LoginManager(getApplicationContext());
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                endBroadcastPrompt();
+            }
+        });
 
         //create map
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
