@@ -75,9 +75,10 @@ public class Results extends Activity {
                     Log.v("Login status", "Logged in user");
                     UserObject selectedTutor = tutorList.get(position);
                     Log.v("selected tutor", String.valueOf(selectedTutor));
+                    selectedTutor.setTutor();
                     // transition to specific tutors page
                     Intent intent = new Intent(Results.this, Meetup.class);
-                    intent.putExtra("selectedTutor", selectedTutor);
+                    intent.putExtra("otherUser", selectedTutor);
                     startActivity(intent);
                 }
                 }

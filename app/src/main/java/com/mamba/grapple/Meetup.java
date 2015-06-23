@@ -68,12 +68,13 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     private Location mLastLocation;
 
     private UserObject otherUser;
+    private UserObject currentUser;
 
     // service related variables
     private boolean mBound = false;
     DBService mService;
 
-    private LocationRequest mLocationRequest;
+    private LocationObject meetingPoint;
 
     Marker tutorMarker;
 
@@ -82,6 +83,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     LoginManager session;
 
     ArrayList<LocationObject> meetingSpots;
+    LocationObject meetingSpot;
     String selectedSpot;
     Button grappleButton;
 
@@ -144,22 +146,22 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 chatButton.setVisibility(View.VISIBLE);
 
 
-                // change to session infowindow
-                iwadapter = new SessionWindowAdapter();
-                gMap.setInfoWindowAdapter(iwadapter);
-                iwadapter.getInfoWindow(tutorMarker);
-                tutorMarker.showInfoWindow();
+//                // change to session infowindow
+//                iwadapter = new SessionWindowAdapter();
+//                gMap.setInfoWindowAdapter(iwadapter);
+//                iwadapter.getInfoWindow(tutorMarker);
+//                tutorMarker.showInfoWindow();
 
-                // send otherUser data along
-                gMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
-                    @Override
-                    public void onInfoWindowClick(Marker marker) {
-                        Intent intent = new Intent(Meetup.this, InSession.class);
-                        intent.putExtra("otherUser", otherUser);
-                        startActivity(intent);
-                        finish();
-                    }
-                });
+//                // send otherUser data along
+//                gMap.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+//                    @Override
+//                    public void onInfoWindowClick(Marker marker) {
+//                        Intent intent = new Intent(Meetup.this, InSession.class);
+//                        intent.putExtra("otherUser", otherUser);
+//                        startActivity(intent);
+//                        finish();
+//                    }
+//                });
 
 
                 chatButton.setOnClickListener(new View.OnClickListener() {
@@ -185,7 +187,6 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tutorselect);
 
-        session = new LoginManager(getApplicationContext());
 
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
 
@@ -193,8 +194,8 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
         grappleButton.setEnabled(false);
 
 
-        // get the tutor data
-        retrieveTutorInfo();
+        // get the other user data
+        retrieveInfo();
 
 
 
@@ -214,6 +215,10 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
         // with actions named "custom-event-name".
         LocalBroadcastManager.getInstance(this).registerReceiver(meetupReceiver,
                 new IntentFilter("meetupReceiver"));
+
+
+        session = new LoginManager(getApplicationContext());
+        currentUser = session.getCurrentUser();
     }
 
     protected void onStop(){
@@ -251,27 +256,12 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
         Bundle extras = intent.getExtras();
         if (extras != null) {
             Log.v("Tutor View", "new intent received ");
-            final LocationObject meetingPoint = extras.getParcelable("meetingPoint");
+            meetingPoint = extras.getParcelable("meetingPoint");
             if (meetingPoint != null) {
                 Log.v("Tutor View", "Meeting Point Found");
-                final LatLng mP = new LatLng(meetingPoint.lat, meetingPoint.lon);
-                gMap.addMarker(new MarkerOptions()
-                        .position(mP)
-                        .title("Meeting Point")
-                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+                gMap.clear();
+                routeToMP();
 
-                addRoute(meetingPoint.lat, meetingPoint.lon);
-
-
-
-
-                new Handler().postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        // display locally
-                        tutorMarker.setPosition(mP);
-                    }
-                }, 4000);
             }
         }
     }
@@ -280,34 +270,58 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     public void onMapReady(GoogleMap map) {
         Log.v("Google Map Ready", "Adding tutor marker");
 
-        meetingSpots = otherUser.getMeetingSpots();
+
         int zoom;
         gMap = map;
         map.setMyLocationEnabled(true);
+        CameraPosition cameraPosition;
 
-        List<LatLng> coordinates = new ArrayList<LatLng>();
+        if(mService.inMeetup()){
+            routeToMP();
 
-        // add markers for all the potential meeting spots
-        for(int i =0; i < meetingSpots.size(); i++){
-            LatLng meetingLoc = new LatLng(meetingSpots.get(i).lat, meetingSpots.get(i).lon);
-            coordinates.add(meetingLoc);
-            tutorMarker = gMap.addMarker(new MarkerOptions()
-                    .position(meetingLoc)
-                    .title(meetingSpots.get(i).getName())
-                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
+            cameraPosition = new CameraPosition.Builder()
+                    .target(new LatLng(meetingPoint.lat, meetingPoint.lon)).zoom(14).build();
+        }else{
+            List<LatLng> coordinates = new ArrayList<LatLng>();
+            meetingSpots = otherUser.getMeetingSpots();
+            // add markers for all the potential meeting spots
+            for(int i =0; i < meetingSpots.size(); i++){
+                LatLng meetingLoc = new LatLng(meetingSpots.get(i).lat, meetingSpots.get(i).lon);
+                coordinates.add(meetingLoc);
+                tutorMarker = gMap.addMarker(new MarkerOptions()
+                        .position(meetingLoc)
+                        .title(meetingSpots.get(i).getName())
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
 
+            }
+
+
+
+        //        iwadapter = new TutorWindowAdapter();
+        //        gMap.setInfoWindowAdapter(iwadapter);
+        //        iwadapter.getInfoWindow(tutorMarker);
+
+            LatLng center = findCenter(coordinates);
+
+             cameraPosition = new CameraPosition.Builder()
+                    .target(center).zoom(14).build();
+
+
+
+            // selects the meeting point and stores it for reference
+            gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                @Override
+                public boolean onMarkerClick(Marker marker) {
+                    if(!mService.grappleState()){
+                        grappleButton.setEnabled(true);
+                        grappleButton.setTextColor(Color.WHITE);
+                        selectedSpot =  marker.getTitle();
+                    }
+
+                    return false;
+                }
+            });
         }
-
-
-
-//        iwadapter = new TutorWindowAdapter();
-//        gMap.setInfoWindowAdapter(iwadapter);
-//        iwadapter.getInfoWindow(tutorMarker);
-
-        LatLng center = findCenter(coordinates);
-
-        CameraPosition cameraPosition = new CameraPosition.Builder()
-                .target(center).zoom(14).build();
 
 
         gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), new GoogleMap.CancelableCallback() {
@@ -321,47 +335,6 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
             }
         });
-
-
-        gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-                if(!mService.grappleState()){
-                    grappleButton.setEnabled(true);
-                    grappleButton.setTextColor(Color.WHITE);
-                    selectedSpot =  marker.getTitle();
-                }
-
-                return false;
-            }
-        });
-
-//        if (mLastLocation != null) {
-//            LatLng userLoc = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-//
-//            Log.v("mLastLocation Exists", "Adding user marker");
-//
-//            Double distance = Double.parseDouble(otherUser.getDistance(userLoc));
-//
-//            zoom = (distance < 1) ? 14 : 13;
-//
-//            CameraPosition cameraPosition = new CameraPosition.Builder()
-//                    .target(center).zoom(zoom).build();
-//
-//            gMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition), new GoogleMap.CancelableCallback() {
-//                @Override
-//                public void onFinish() {
-//                    tutorMarker.showInfoWindow();
-//                }
-//
-//                @Override
-//                public void onCancel() {
-//
-//                }
-//            });
-//
-//        }
-
     }
 
 
@@ -370,42 +343,48 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     public void grappleTutor(View view){
         Log.v("grappleEvent", "tutor id = " + otherUser.getId());
         startGrapplePrompt();
-//        mService.startGrapple(otherUser);
-//        Intent intent = new Intent(this, Chat.class);
-//        intent.putExtra("user", otherUser);
-//        startActivity(intent);
     }
 
-    public void retrieveTutorInfo() {
+    public void retrieveInfo() {
         // get the tutor data
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            otherUser = extras.getParcelable("selectedTutor");
+            otherUser = extras.getParcelable("otherUser");
 
-            // Look up view for data population
-            TextView tutorName = (TextView) findViewById(R.id.tutorName);
-//            TextView tutorDistance = (TextView) findViewById(R.id.tutorDistance);
-            TextView tutorPrice = (TextView) findViewById(R.id.tutorPrice);
+            // get + set name and rating from both perspectives
+            TextView othersName = (TextView) findViewById(R.id.tutorName);
+            RatingBar othersRating = (RatingBar) findViewById(R.id.ratingBar);
 
-            RatingBar tutorRating = (RatingBar) findViewById(R.id.ratingBar);
-            ImageView tutorPic = (ImageView) findViewById(R.id.imageView);
+            othersName.setText(otherUser.getName());
+            othersRating.setRating(otherUser.getRating());
 
-
-
-
-            // populate the data
-            tutorName.setText(otherUser.getName());
-//            tutorDistance.setText(otherUser.getDistance(mLastLocation) + " mi");
-            tutorPrice.setText("$" +  String.format("%.2f", otherUser.getPrice()));
-            tutorRating.setRating(otherUser.getRating());
-
+            if(otherUser.isTutor()){
+                Log.v("Other User", "Is a tutor");
+                // if tutor we show the price
+                TextView tutorPrice = (TextView) findViewById(R.id.tutorPrice);
+                tutorPrice.setText("$" +  String.format("%.2f", otherUser.getPrice()));
+            }else{
+                meetingPoint = extras.getParcelable("meetingPoint");
+            }
         }
+    }
+
+    // creates marker from meeting point and draws a route to it
+    public void routeToMP(){
+        final LatLng mP = new LatLng(meetingPoint.lat, meetingPoint.lon);
+        gMap.addMarker(new MarkerOptions()
+                .position(mP)
+                .title(meetingPoint.getName())
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+
+        addRoute(meetingPoint.lat, meetingPoint.lon);
     }
 
 
     public void grapplSuccess(){
         Intent intent = new Intent(Meetup.this, Chat.class);
         intent.putExtra("user", otherUser);
+        intent.putExtra("meetingSpot", meetingSpot);
         startActivity(intent);
     }
 
@@ -429,11 +408,20 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     private void startGrapplePrompt(){
         new AlertDialog.Builder(this)
                 .setTitle("Grappl " + otherUser.firstName() + " ?")
-                .setMessage("Request to meetup with " + otherUser.firstName() + " at " + selectedSpot +"?")
-                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener(){
+                .setMessage("Request to meetup with " + otherUser.firstName() + " at " + selectedSpot + "?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
+
                         // continue with ending broadcast
-                        mService.startGrapple(otherUser);
+                        mService.startGrapple(otherUser, selectedSpot);
+                        // mark this user as student
+                        currentUser.isStudent();
+                        // store
+                        session.saveUser(currentUser);
+                        // update service
+                        mService.setSession(session);
+                        // get the location for selectedSpot
+                        meetingSpot = findMeetingSpot(selectedSpot);
 
                     }
                 })
@@ -471,7 +459,18 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     }
 
 
-    /************************************  Triangulation  ***************************************************************************/
+    /************************************  Locating  ***************************************************************************/
+
+    private LocationObject findMeetingSpot(String place){
+        for(int i = 0; i < meetingSpots.size(); i++){
+            if(meetingSpots.get(i).getName().equals(place)){
+                return meetingSpots.get(i);
+            }
+        }
+
+        return null;
+    }
+
 
     private LatLng findCenter(List<LatLng> coordinates){
 
@@ -588,23 +587,23 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
         // we will treat it as though the meeting point is the way point between the tutor and student
         double originLat = mLastLocation.getLatitude();
         double originLong = mLastLocation.getLongitude();
-        double destLat = otherUser.getLatitude();
-        double destLong = otherUser.getLongitude();
+//        double destLat = otherUser.getLatitude();
+//        double destLong = otherUser.getLongitude();
 
         // Origin of route
         String str_origin = "origin=" + originLat + "," + originLong;
 
         // Destination of route
-        String str_dest = "destination=" + destLat + "," + destLong;
+        String str_dest = "destination=" + meetLat + "," + meetLong;
 
-        // Waypoint (meeting point)
-        String waypoints = "waypoints=" + meetLat + "," + meetLong;
+//        // Waypoint (meeting point)
+//        String waypoints = "waypoints=" + meetLat + "," + meetLong;
 
         // Sensor enabled
         String sensor = "sensor=false";
 
         // Building the parameters to the web service
-        String parameters = str_origin + "&" + str_dest + "&" + sensor + "&" + waypoints;
+        String parameters = str_origin + "&" + str_dest + "&" + sensor;
 
         // Output format
         String output = "json";
@@ -718,8 +717,8 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 JSONArray studentSteps = routes.getJSONObject(0).getJSONArray("legs")
                         .getJSONObject(0).getJSONArray("steps");
 
-                JSONArray tutorSteps = routes.getJSONObject(0).getJSONArray("legs")
-                        .getJSONObject(1).getJSONArray("steps");
+//                JSONArray tutorSteps = routes.getJSONObject(0).getJSONArray("legs")
+//                        .getJSONObject(1).getJSONArray("steps");
 
                 for (int i = 0; i < studentSteps.length(); i++) {
                     String polyline = studentSteps.getJSONObject(i).getJSONObject("polyline").getString("points");
@@ -729,13 +728,13 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                     }
                 }
 
-                for (int i = 0; i < tutorSteps.length(); i++) {
-                    String polyline = tutorSteps.getJSONObject(i).getJSONObject("polyline").getString("points");
-
-                    for (LatLng p : decodePolyline(polyline)) {
-                        lines.add(p);
-                    }
-                }
+//                for (int i = 0; i < tutorSteps.length(); i++) {
+//                    String polyline = tutorSteps.getJSONObject(i).getJSONObject("polyline").getString("points");
+//
+//                    for (LatLng p : decodePolyline(polyline)) {
+//                        lines.add(p);
+//                    }
+//                }
 
 
             } catch (Exception e) {

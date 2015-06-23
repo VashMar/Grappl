@@ -22,13 +22,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -45,7 +44,7 @@ public class Chat extends Activity {
     private LocationObject selectedLocation;
 
 
-    private UserObject recipient;
+    private UserObject otherUser;
     private UserObject currentUser;
 
 
@@ -53,21 +52,18 @@ public class Chat extends Activity {
 
     EditText chatInput;
     ImageButton sendButton;
-    ImageButton suggestButton;
+    ImageButton mapButton;
     View selected;
 //    ImageButton locationList;
 
 
     private boolean grappled = false;
-
     LoginManager session;
 
 
     // service related variables
     private boolean mBound = false;
     DBService mService;
-
-
 
     // service connection event handler
     private ServiceConnection mConnection = new ServiceConnection(){
@@ -84,6 +80,34 @@ public class Chat extends Activity {
             adapter = new MessagesAdapter(Chat.this,messageList);
             messagesContainer.setAdapter(adapter);
             adapter.notifyDataSetChanged();
+
+            if(currentUser.isTutor() && !mService.inMeetup()){
+                Log.v("Chat Activity", "Tutor entered..");
+                RelativeLayout tutorPrompt = (RelativeLayout) findViewById(R.id.tutorPrompt);
+                Button acceptTutoring = (Button) findViewById(R.id.acceptTutoring);
+                Button declineTutoring = (Button) findViewById(R.id.declineTutoring);
+                final TextView meetupQuestion = (TextView) findViewById(R.id.meetupQuestion);
+                tutorPrompt.setVisibility(View.VISIBLE);
+                meetupQuestion.setText("Do you want to meetup with " + otherUser.firstName() + " at " +  selectedLocation.getName()+ "?");
+                acceptTutoring.setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View v) {
+                        mService.setMeetup();
+                        mService.startMeetup();
+                        Intent meet = new Intent(Chat.this, Meetup.class);
+                        meet.putExtra("meetingPoint", selectedLocation);
+                        meet.putExtra("otherUser", otherUser);
+                        startActivity(meet);
+                    }
+                });
+
+
+                declineTutoring.setOnClickListener(new View.OnClickListener(){
+                    public void onClick(View v){
+
+                    }
+                });
+
+            }
 
         }
         public void onServiceDisconnected(ComponentName arg0) {
@@ -109,6 +133,12 @@ public class Chat extends Activity {
                 if(responseType == "message"){
                     adapter.notifyDataSetChanged();
                 }
+
+                if(responseType.equals("startMeetup")){
+                    Intent meet = new Intent(Chat.this, Meetup.class);
+                    meet.putExtra("meetingPoint", selectedLocation);
+                    startActivity(meet);
+                }
             }
         }
     };
@@ -124,14 +154,9 @@ public class Chat extends Activity {
 
         retrieveInfo(); // gets info about other chat member
 
-
-
-
         messagesContainer = (ListView) findViewById(R.id.list_view_messages);
         sendButton = (ImageButton) findViewById(R.id.btnSend);
-        suggestButton = (ImageButton) findViewById(R.id.suggestMeetingBtn);
         chatInput = (EditText)  findViewById(R.id.msgInput);
-
 
         sendButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
@@ -140,52 +165,21 @@ public class Chat extends Activity {
                 String msgText = chatInput.getText().toString();
 
                 // send message to server
-                mService.sendMessage(currentUser.firstName(), currentUser.getId(), recipient.getId(), msgText);
+                mService.sendMessage(currentUser.firstName(), currentUser.getId(), otherUser.getId(), msgText);
 
                 // clear input field
                 chatInput.setText("");
 
             }
         });
-
-
-        suggestButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showListDialog(v.getContext());
-            }
-        });
-
-
-        messagesContainer.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-
-                MessageObject message = messageList.get(position);
-
-                // handle if location
-                if (message.isLocation()) {
-                    Intent intent = new Intent(Chat.this, MapDialog.class);
-                    intent.putExtra("meetingPoint", message.getLocation());
-                    intent.putExtra("isSelf", message.isSelf());
-                    intent.putExtra("otherUser", recipient);
-                    startActivity(intent);
-                }
-            }
-        });
-
-
-
     }
 
     @Override
     protected void onResume(){
         super.onResume();
-
         //get the latest session and user data
         session = new LoginManager(getApplicationContext());
         currentUser = session.getCurrentUser();
-
     }
 
 
@@ -238,9 +232,9 @@ public class Chat extends Activity {
         // get the connected users data
         Bundle extras = getIntent().getExtras();
         if(extras != null){
-
-            recipient = extras.getParcelable("user");
-            getActionBar().setTitle(recipient.getName());
+            otherUser = extras.getParcelable("user");
+            selectedLocation = extras.getParcelable("meetingSpot");
+            getActionBar().setTitle(otherUser.getName());
             getActionBar().setIcon(R.drawable.user_icon);
 
             // mark that grapple already happened
@@ -248,104 +242,10 @@ public class Chat extends Activity {
                 grappled = true;
             }
 
-
         }
     }
 
 
-
-    public void showListDialog(Context context){
-
-        final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-
-        dialog.setCancelable(true);
-
-        View view = ((Activity)context).getLayoutInflater().inflate(R.layout.activity_addresslist, null);
-
-        ListView list = (ListView) view.findViewById(R.id.addressList);
-        Button suggestBtn = (Button) view.findViewById(R.id.suggestBtn);
-        locationsAdapter = new LocationsAdapter(this, locationList, null);
-        TextView title = new TextView(this);
-
-        // title info
-        title.setText("Input or Choose a Meeting Location");
-        title.setGravity(Gravity.CENTER);
-        title.setTextSize(20);
-
-        dialog.setCustomTitle(title);
-
-        list.setAdapter(locationsAdapter);
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener(){
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
-                // If a previous item was selected unhighlight it
-                if (selected != null) {
-                    selected.setBackgroundColor(Color.TRANSPARENT);
-                    parent.getChildAt(0).setBackgroundColor(Color.TRANSPARENT);
-                }
-
-                // highlight the selected item
-                selected = view;
-                selected.setBackgroundColor(Color.rgb(62, 175, 212));
-
-                // get the selected location
-                selectedLocation = locationList.get(position);
-                if(selectedLocation.lat == 0.0 || selectedLocation.lon == 0.0){
-                    selectedLocation.geoCode(getApplicationContext());
-                }
-                Log.v("Selected Location", String.valueOf(selectedLocation.lat) + "," + String.valueOf(selectedLocation.lon));
-
-            }
-        });
-
-        dialog.setView(view);
-        final AlertDialog alert = dialog.show();
-
-        // on location suggest
-        suggestBtn.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View v) {
-                // close the dialog
-                alert.cancel();
-                if(selectedLocation != null){
-                    // emit the location message
-                    mService.sendMessage(currentUser.firstName(), currentUser.getId(), recipient.getId(), selectedLocation.getAddress(), selectedLocation.lat, selectedLocation.lon);
-                }
-            }
-        });
-
-    }
-
-//    public void dummyPopulate(){
-//
-//        locationList =  new ArrayList<LocationObject>();
-//        final Context context = getApplicationContext();
-//
-//
-//
-//        Thread thread = new Thread(new Runnable(){
-//            @Override
-//            public void run(){
-//                // create dummy location objects for now
-//                final LocationObject loc1 = new LocationObject("College Library", "600 N Park St, Madison, WI", context);
-//                final LocationObject loc2 = new LocationObject("Union South", "1308 W Dayton St, Madison, WI", context);
-//                final LocationObject loc3 = new LocationObject("Chemistry Building", "1101 University Ave, Madison, WI", context);
-//                final LocationObject loc4 = new LocationObject("Grainger Hall", "975 University Ave, Madison, WI", context);
-//
-//                locationList.add(loc1);
-//                locationList.add(loc2);
-//                locationList.add(loc3);
-//                locationList.add(loc4);
-//
-//
-//            }
-//        });
-//
-//
-//        thread.start();
-//
-//    }
-//
 
 
     /**************************************************************************** Options Menu Management ******************************************************************/

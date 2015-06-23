@@ -76,6 +76,14 @@ public class LoginManager {
         return currentUser;
     }
 
+    // saves changed current user
+    public void saveUser(UserObject updatedUser){
+        currentUser = updatedUser;
+        String user = gson.toJson(currentUser);
+        editor.putString(CURRENT_USER, user);
+        editor.commit();
+    }
+
     public void storeBroadcastSettings(){
 
     }

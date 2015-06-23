@@ -19,6 +19,7 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.NumberPicker;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -58,6 +59,7 @@ public class Broadcast extends Fragment {
     ImageButton priceButton;
     ImageButton courseButton;
     Button broadcastButton;
+    ProgressBar spinner;
 
 
 
@@ -126,6 +128,7 @@ public class Broadcast extends Fragment {
 
         // grab UI elements
         broadcastButton = (Button) getView().findViewById(R.id.broadcastButton);
+        spinner = (ProgressBar) getView().findViewById(R.id.spinner);
         courseButton  = (ImageButton) getView().findViewById(R.id.courseButton);
         locationButton = (ImageButton) getView().findViewById(R.id.locationButton);
         timeButton = (ImageButton) getView().findViewById(R.id.timeButton);
@@ -134,6 +137,9 @@ public class Broadcast extends Fragment {
         courseText = (TextView) getView().findViewById(R.id.courseText);
         availText = (TextView) getView().findViewById(R.id.availText);
         priceText = (TextView) getView().findViewById(R.id.priceText);
+
+        // give main control of spinner
+        ((Main) getActivity()).setSpinner(spinner);
 
         // get meeting locations
         locPopulate();
@@ -150,6 +156,8 @@ public class Broadcast extends Fragment {
                    // we expect the auth response
                    startActivityForResult(intent, 1);
                }else{
+                   spinner.setVisibility(View.VISIBLE);
+                   broadcastButton.setEnabled(false);
                    startBroadcast();
                }
 
@@ -195,6 +203,8 @@ public class Broadcast extends Fragment {
         if(selectedLocations.size() > 0){
             insertLocText();
         }
+
+        broadcastButton.setEnabled(true);
     }
 
 
@@ -236,20 +246,27 @@ public class Broadcast extends Fragment {
                     }
                 }
 
-                endTime += " Today";
-            }else{
-                endTime += " " + whenAvailable;
+
             }
 
 
-            ((Main) getActivity()).mService.startBroadcast(broadcastMS, availableTime, hrRate, selectedCourses, selectedLocations);
+
+            if(whenAvailable.equals("Tomorrow")){
+                endTime += " Tomorrow";
+            }else{
+                endTime += " Today";
+            }
+
+
 //            ((Main) getActivity()).session.updateCurrentUserDistance(distance);
             Intent intent = new Intent(getActivity(), Waiting.class);
             intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
             intent.putExtra("hrRate", hrRate);
             intent.putStringArrayListExtra("selectedCourses", selectedCourses);
             intent.putExtra("endTime", endTime);
-            startActivity(intent);
+            ((Main) getActivity()).setBroadCastIntent(intent);
+            ((Main) getActivity()).mService.startBroadcast(broadcastMS, availableTime, hrRate, selectedCourses, selectedLocations);
+            //startActivity(intent);
         }else {
             // we can only broadcast if the tutor has a selected a meeting spot
             if(selectedCourses.size() < 1){

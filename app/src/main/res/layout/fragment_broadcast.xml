@@ -185,74 +185,9 @@
                 android:paddingRight="10dp"
                 />
 
-        <!--<SeekBar-->
-            <!--android:layout_width="254dp"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:id="@+id/seekPrice"-->
-            <!--android:max="10" />-->
-            <!--android:layout_gravity="center_horizontal|top"-->
-
 
 
         </LinearLayout>
-
-
-        <!--<LinearLayout-->
-            <!--android:id="@+id/sessionTime"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:orientation="vertical"-->
-            <!--android:layout_below="@+id/sessionPrice"-->
-            <!--android:layout_alignLeft="@+id/sessionPrice"-->
-            <!--android:layout_alignStart="@+id/sessionPrice"-->
-            <!--android:layout_marginTop="20dp"-->
-            <!-->-->
-
-
-            <!--<TextView-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:text="Availability: 30 min "-->
-                <!--android:id="@+id/timeAvailable"-->
-                <!--android:layout_gravity="center"-->
-                <!--android:textSize="16dp"-->
-               <!--/>-->
-
-            <!--<SeekBar-->
-                <!--android:layout_width="254dp"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/seekTime"-->
-                <!--android:layout_gravity="center"-->
-                <!--android:max="10" />-->
-
-        <!--</LinearLayout>-->
-
-        <!--<LinearLayout-->
-            <!--android:id="@+id/sessionDistance"-->
-            <!--android:layout_width="wrap_content"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:orientation="vertical"-->
-            <!--android:layout_below="@id/sessionTime"-->
-            <!--android:layout_alignRight="@+id/sessionPrice"-->
-            <!--android:layout_alignEnd="@+id/sessionPrice"-->
-            <!--android:layout_marginTop="20dp">-->
-
-            <!--<TextView-->
-                <!--android:layout_width="wrap_content"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:text="Travel Distance: 0 mi "-->
-                <!--android:id="@+id/travelDistance"-->
-                <!--android:layout_gravity="center"-->
-                <!--android:textSize="16dp"-->
-             <!--/>-->
-
-            <!--<SeekBar-->
-                <!--android:layout_width="254dp"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:id="@+id/seekDistance"-->
-                <!--android:max="10" />-->
-
-        <!--</LinearLayout>-->
 
 
         <Button
@@ -266,6 +201,15 @@
             android:layout_alignParentBottom="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true" />
+
+        <ProgressBar
+            android:id="@+id/spinner"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:layout_below="@+id/locationContainer"
+            android:layout_centerHorizontal="true" />
 
 
     </RelativeLayout>

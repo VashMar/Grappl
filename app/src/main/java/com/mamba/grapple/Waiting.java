@@ -82,9 +82,13 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 if(responseType == "grapple"){
                     // take them to chat view with user
                     UserObject user = extras.getParcelable("user");
+                    String place = extras.getString("place");
+                    LocationObject meetingSpot = findMeetingSpot(place);
                     Intent chatIntent = new Intent(Waiting.this, Chat.class);
                     chatIntent.putExtra("user", user);
+                    chatIntent.putExtra("meetingSpot", meetingSpot);
                     startActivity(chatIntent);
+                    finish();
                 }
             }
         }
@@ -132,6 +136,9 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         // track user session data
         session = new LoginManager(getApplicationContext());
         currentUser = session.getCurrentUser();
+
+        //set current user as tutor
+
 
         Bundle extras = getIntent().getExtras();
         if (extras != null ){
@@ -287,7 +294,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         }
 
         LatLng center = findCenter(coordinates);
-        googleMap.moveCamera( CameraUpdateFactory.newLatLngZoom(center , 14));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 14));
 
 
 
@@ -317,7 +324,15 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 .show();
     }
 
+    private LocationObject findMeetingSpot(String place){
+        for(int i = 0; i < meetingSpots.size(); i++){
+            if(meetingSpots.get(i).getName().equals(place)){
+                return meetingSpots.get(i);
+            }
+        }
 
+        return null;
+    }
 
     private LatLng findCenter(List<LatLng> coordinates){
 

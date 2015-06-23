@@ -116,6 +116,15 @@ public class UserObject implements Parcelable {
         this.distance = distance;
     }
 
+    public void setSession(TutorSession session){
+        this.session = session;
+        this.tutoring = true;
+    }
+
+    public void isStudent(){
+        this.tutoring = false;
+    }
+
     public float travelDistance(){
         return this.distance;
     }
@@ -133,6 +142,7 @@ public class UserObject implements Parcelable {
     public double getPrice(){
         return this.session.price;
     }
+
     public int sessionLength(){
         return this.session.period;
     }
@@ -140,7 +150,6 @@ public class UserObject implements Parcelable {
     public ArrayList<LocationObject> getMeetingSpots(){
         return this.session.meetingSpots;
     }
-
 
 
 
@@ -153,6 +162,10 @@ public class UserObject implements Parcelable {
     }
 
     public boolean isTutor(){ return this.tutoring; }
+
+    public void setTutor(){
+        this.tutoring = true;
+    }
 
     public boolean isAvailable(){return this.session.available;}
 

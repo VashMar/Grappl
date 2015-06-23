@@ -14,6 +14,7 @@ import android.graphics.Color;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.ContactsContract;
 import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentPagerAdapter;
@@ -22,6 +23,8 @@ import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TabHost;
 
 import java.util.ArrayList;
@@ -38,7 +41,7 @@ public class Main extends FragmentActivity {
     ActionBar actionBar;
     ViewPager viewPager;
     FragmentPagerAdapter fragPageAdapter;
-
+    ProgressBar spinner;
 
     // service related variables
     private boolean mBound = false;
@@ -48,6 +51,9 @@ public class Main extends FragmentActivity {
     LoginManager session;
     UserObject currentUser;
     Context context;
+
+    // Broadcast transition intent
+    Intent broadcastIntent;
 
     // temporary until DB load setup (use SimpleCursorAdapter for DB)
     static final String[] COURSES = {"Chemistry 103", "Comp Sci 302", "French 4", "Math 234", "Physics 202"};
@@ -65,6 +71,16 @@ public class Main extends FragmentActivity {
                 String responseType = extras.getString("responseType");
                 Log.v("responseType", responseType);
                 Log.v("Main Activity", "received response: " + responseType);
+
+                // updates the tutor session data prior to a broadcast
+                if(responseType.equals("updatedSession")){
+                    TutorSession updatedSession = extras.getParcelable("session");
+                    currentUser.setSession(updatedSession);
+                    session.saveUser(currentUser);
+                    mService.setSession(session);
+                    startActivity(broadcastIntent);
+                    spinner.setVisibility(View.GONE);
+                }
 
             }
         }
@@ -119,13 +135,7 @@ public class Main extends FragmentActivity {
 
         session = new LoginManager(getApplicationContext());
 
-        // register broadcast receiver for activity
-        LocalBroadcastManager.getInstance(this).registerReceiver(mainReceiver,
-                new IntentFilter("mainReceiver"));
 
-        // register global broadcast receiver
-        LocalBroadcastManager.getInstance(this).registerReceiver(multicastReceiver,
-                new IntentFilter("multicastReceiver"));
 
         LocationManager lm = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
         boolean gps_enabled = false;
@@ -168,19 +178,37 @@ public class Main extends FragmentActivity {
 
     }
 
-    // check login status every time the activity gets shown
+
     protected void onResume(){
         super.onResume();
+
+    }
+
+    protected void onPause(){
+        super.onPause();
+    }
+
+    // check login status every time the activity gets shown
+    protected void onStart(){
+        super.onStart();
         session = new LoginManager(getApplicationContext());
         if(session.isLoggedIn()){
             currentUser = session.getCurrentUser();
             Log.v("Search Login Status", currentUser.getName() +  " has been logged in");
             createService();
         }
+
+        // register broadcast receiver for activity
+        LocalBroadcastManager.getInstance(this).registerReceiver(mainReceiver,
+                new IntentFilter("mainReceiver"));
+
+        // register global broadcast receiver
+        LocalBroadcastManager.getInstance(this).registerReceiver(multicastReceiver,
+                new IntentFilter("multicastReceiver"));
     }
 
-    protected void onPause(){
-        super.onPause();
+    protected void onStop(){
+        super.onStart();
         // Unbind from the service
         if (mBound){
             Log.v("Unbinding Service", "Search Activity");
@@ -266,6 +294,14 @@ public class Main extends FragmentActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    public void setBroadCastIntent(Intent intent){
+        broadcastIntent = intent;
+    }
+
+    public void setSpinner(ProgressBar spin){
+        spinner = spin;
     }
 
 
