@@ -103,24 +103,31 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 String url = "http://protected-dawn-4244.herokuapp.com" + "?token=" + session.getToken();
                 Log.v("socket url", url);
                 socket = IO.socket(url);
+
+                // create listeners
+                socket.on("message", message);
+                socket.on("locationUpdate", locationUpdate);
+                socket.on("meetingSuggestion", meetingSuggestion);
+                socket.on("startSessionRequest", startSessionRequest);
+                socket.on("grapple", grapple);
+                socket.on("removeAvailableDone", removeAvailableDone);
+                socket.on("sessionUpdated", sessionUpdated);
+                socket.on("grapplFail", grapplFail);
+                socket.on("grapplSuccess", grapplSuccess);
+                socket.on("grapplEnded", grapplEnded);
+                socket.on("startMeetup", startMeetup);
+                socket.on("sessionRequest", sessionRequest);
+                socket.on("startSession", startSession);
+                socket.on("sessionEnded", sessionEnded);
+                socket.on(Socket.EVENT_DISCONNECT, reconnect);
+                socket.connect();
+
             } catch (URISyntaxException e){
                 Log.e("Bad URI", e.getMessage());
             }
         }
 
-        // create listeners
-        socket.on("message", message);
-        socket.on("locationUpdate", locationUpdate);
-        socket.on("meetingSuggestion", meetingSuggestion);
-        socket.on("startSessionRequest", startSessionRequest);
-        socket.on("grapple", grapple);
-        socket.on("removeAvailableDone", removeAvailableDone);
-        socket.on("sessionUpdated", sessionUpdated);
-        socket.on("grapplFail", grapplFail);
-        socket.on("grapplSuccess", grapplSuccess);
-        socket.on("startMeetup", startMeetup);
-        socket.on(Socket.EVENT_DISCONNECT, reconnect);
-        socket.connect();
+
     }
 
 
@@ -133,7 +140,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
 
     public IBinder onBind(Intent intent) {
-       return myBinder;
+        return myBinder;
     }
 
 
@@ -168,6 +175,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     public void endGrapple(){
         inGrapple = false;
+        inMeetup = false;
         grappledUser = null;
     }
 
@@ -190,6 +198,12 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     public void setSesh(){
         inSesh = true;
+    }
+
+    public void resetStates(){
+        inSesh = false;
+        inGrapple = false;
+        inMeetup = false;
     }
 
 
@@ -252,12 +266,10 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             for(String course : courses){
                 tutorCourses.put(course);
             }
-            
 
             for(LocationObject loc : selectedLocs){
                 meetingSpots.put(gson.toJson(loc));
             }
-
 
             broadcastInfo.put("startTime", startTime);
             broadcastInfo.put("period", period);
@@ -310,6 +322,12 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
     }
 
+
+    public void cancelGrappl(){
+        socket.emit("cancelGrappl");
+        endGrapple();
+    }
+
     public void grapplSuccess(String id){
         try{
             JSONObject data = new JSONObject();
@@ -324,6 +342,39 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     public void startMeetup(){
         socket.emit("startMeetup");
     }
+
+    public void sessionRequest(){
+        socket.emit("sessionRequest");
+    }
+
+    public void sessionAccept(){
+        Log.v("Emitting..", "sessionAccept");
+        socket.emit("sessionAccept");
+        setSesh();
+    }
+
+    public void endSession(long ms){
+        try{
+            JSONObject data = new JSONObject();
+            data.put("time", ms);
+            socket.emit("endSession", data);
+            resetStates();
+        }catch(JSONException e){
+
+        }
+
+    }
+
+//    public void sessionStarted(long ms){
+//        try{
+//            JSONObject data = new JSONObject();
+//            data.put("sessionTime", ms);
+//            Log.v("Emitting..", "sessionStarted");
+//            socket.emit("sessionStarted", data);
+//        }catch(JSONException e){
+//            e.printStackTrace();
+//        }
+//    }
 
 
     // send text message
@@ -345,37 +396,14 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     }
 
-    // send location message
-    public void sendMessage(String senderName, String senderID, String recipID, String message, double latitude, double longitude){
-
-        try{
-            JSONObject messageData = new JSONObject();
-            messageData.put("senderName", senderName);
-            messageData.put("senderID", senderID);
-            messageData.put("recipID", recipID);
-            messageData.put("message", message);
-            messageData.put("lat", latitude);
-            messageData.put("lon", longitude);
-            Log.v("Emitting..", " Location Message");
-            socket.emit("message" , messageData);
-
-        }catch(JSONException e){
-            e.printStackTrace();
-        }
-
-
-    }
-
-
 
     // broadcast used to update the user's rating
-    public void updateRating(String userID, int updatedRating){
+    public void updateRating(boolean isTutor, int updatedRating){
 
         JSONObject broadcastInfo = new JSONObject();
-        JSONArray tutorCourses = new JSONArray();
 
         try{
-            broadcastInfo.put("id", userID);
+            broadcastInfo.put("isTutor", isTutor);
             broadcastInfo.put("rating", updatedRating);
             Log.v("Emitting..", "Update Rating");
             socket.emit("updateRating", broadcastInfo);
@@ -416,10 +444,10 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 addMessage(messageObject);
 
                 // broadcast to chat
-                Intent intent = new Intent("chatReceiver");
-                intent.putExtra("responseType", "message");
-                intent.putExtra("msg", messageObject);
-                clientBroadcast(intent);
+                Intent chatIntent = new Intent("grapplReceiver");
+                chatIntent.putExtra("responseType", "message");
+                chatIntent.putExtra("msg", messageObject);
+                clientBroadcast(chatIntent);
 
 
             }catch (JSONException e){
@@ -435,7 +463,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         @Override
         public void call(final Object... args) {
             Log.v("Emit Received..", "grapplFail");
-            Intent intent = new Intent("meetupReceiver");
+            Intent intent = new Intent("grapplReceiver");
             intent.putExtra("responseType", "grapplFail");
             clientBroadcast(intent);
         }
@@ -446,8 +474,41 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         @Override
         public void call(final Object... args) {
             Log.v("Emit Received..", "grapplSuccess");
-            Intent intent = new Intent("meetupReceiver");
+            Intent intent = new Intent("grapplReceiver");
             intent.putExtra("responseType", "grapplSuccess");
+            clientBroadcast(intent);
+        }
+    };
+
+    private Emitter.Listener grapplEnded = new Emitter.Listener(){
+        @Override
+        public void call(final Object... args){
+            Log.v("Emit Received..", "grapplEnded");
+            Intent intent = new Intent("grapplReceiver");
+            intent.putExtra("responseType", "grapplEnded");
+            clientBroadcast(intent);
+        }
+    };
+
+    private Emitter.Listener sessionRequest = new Emitter.Listener(){
+        @Override
+        public void call(final Object... args){
+            Log.v("Emit Received..", "sessionRequest");
+            Intent intent = new Intent("grapplReceiver");
+            intent.putExtra("responseType", "sessionRequest");
+            clientBroadcast(intent);
+        }
+    };
+
+
+
+    private Emitter.Listener startSession = new Emitter.Listener(){
+        @Override
+        public void call(final Object... args){
+            Log.v("Emit Received..", "startSession");
+            Intent intent = new Intent("grapplReceiver");
+            intent.putExtra("responseType", "startSession");
+            setSesh();
             clientBroadcast(intent);
         }
     };
@@ -458,9 +519,10 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         @Override
         public void call(final Object... args) {
             Log.v("Emit Received..", "startMeetup");
-            Intent intent = new Intent("chatReceiver");
+            Intent intent = new Intent("grapplReceiver");
             intent.putExtra("responseType", "startMeetup");
             clientBroadcast(intent);
+            setMeetup();
         }
     };
 
@@ -497,6 +559,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             // parse data and broadcast
             try{
                 String updatedSession = data.getString("session");
+                Log.v("Updated Session", updatedSession);
                 TutorSession session = gson.fromJson(updatedSession, TutorSession.class);
                 Intent intent = new Intent("mainReceiver");
                 intent.putExtra("responseType", "updatedSession");
@@ -509,6 +572,29 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
         }
     };
+
+    private Emitter.Listener sessionEnded = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            Log.v("Emit Received..", "Session Ended");
+            JSONObject data = (JSONObject) args[0];
+            // parse data and broadcast
+            try{
+                String sessionTime = data.getString("time");
+                Log.v("sessionTime", sessionTime);
+                long seshTime = Long.parseLong(sessionTime);
+                Intent intent = new Intent("seshReceiver");
+                intent.putExtra("responseType", "sessionEnded");
+                intent.putExtra("seshTime", seshTime);
+                clientBroadcast(intent);
+
+            }catch(JSONException e){
+                e.printStackTrace();
+            }
+
+        }
+    };
+
 
 
     private Emitter.Listener meetingSuggestion = new Emitter.Listener() {

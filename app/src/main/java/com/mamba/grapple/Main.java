@@ -28,6 +28,7 @@ import android.widget.ProgressBar;
 import android.widget.TabHost;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
@@ -55,6 +56,8 @@ public class Main extends FragmentActivity {
     // Broadcast transition intent
     Intent broadcastIntent;
 
+    Calendar rightNow;
+
     // temporary until DB load setup (use SimpleCursorAdapter for DB)
     static final String[] COURSES = {"Chemistry 103", "Comp Sci 302", "French 4", "Math 234", "Physics 202"};
     ArrayList<String> courseList;
@@ -76,10 +79,16 @@ public class Main extends FragmentActivity {
                 if(responseType.equals("updatedSession")){
                     TutorSession updatedSession = extras.getParcelable("session");
                     currentUser.setSession(updatedSession);
+                    currentUser.setTutor();
                     session.saveUser(currentUser);
                     mService.setSession(session);
-                    startActivity(broadcastIntent);
-                    spinner.setVisibility(View.GONE);
+                    rightNow = Calendar.getInstance();
+                    if(currentUser.getSessionStart() <= rightNow.getTimeInMillis()){
+                        Log.v("Starting Broadcast", "Waiting..");
+                        startActivity(broadcastIntent);
+                        spinner.setVisibility(View.GONE);
+                    }
+
                 }
 
             }
@@ -133,7 +142,7 @@ public class Main extends FragmentActivity {
             }
         });
 
-        session = new LoginManager(getApplicationContext());
+//        session = new LoginManager(getApplicationContext());
 
 
 
@@ -191,6 +200,7 @@ public class Main extends FragmentActivity {
     // check login status every time the activity gets shown
     protected void onStart(){
         super.onStart();
+        Log.v("Main Activity", "Starting");
         session = new LoginManager(getApplicationContext());
         if(session.isLoggedIn()){
             currentUser = session.getCurrentUser();
@@ -303,10 +313,6 @@ public class Main extends FragmentActivity {
     public void setSpinner(ProgressBar spin){
         spinner = spin;
     }
-
-
-
-
 
 }
 

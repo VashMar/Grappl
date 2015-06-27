@@ -56,7 +56,7 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         // populate the data into the list item template
         tutorName.setText(tutor.getName());
         tutorPrice.setText("$" +  String.format("%.2f", tutor.getPrice()));
-        tutorRating.setRating(tutor.getRating());
+        tutorRating.setRating((float)tutor.getTutorRating());
 
 
         // get the time data for the current time

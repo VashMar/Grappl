@@ -21,15 +21,29 @@ import com.google.android.gms.maps.MapFragment;
 
 import org.json.JSONObject;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by vash on 4/18/15.
  */
 public class PostSession extends Activity {
 
     TextView rateTutor;
+    TextView sessionLength;
+    TextView hourRate;
+    TextView total;
     RatingBar rating;
     Button doneButton;
     ImageView tutorPic;
+
+    long seshLength;
+    long seshMin;
+    long seshHr;
+    long totalCost;
+
+    UserObject otherUser;
+    UserObject currentUser;
+    UserObject tutor;
 
     LoginManager session;
     private Location mLastLocation;
@@ -38,6 +52,43 @@ public class PostSession extends Activity {
     private boolean mBound = false;
     DBService mService;
 
+    private ServiceConnection mConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            DBService.LocalBinder binder = (DBService.LocalBinder) service;
+            mService = binder.getService();
+            mService.setSession(session);
+            mBound = true;
+
+
+            otherUser = mService.getGrappledUser();
+            currentUser = session.getCurrentUser();
+            mLastLocation = mService.getLocation();
+
+            // find whos the tutor
+            tutor =  (otherUser.isTutor()) ?  otherUser : currentUser;
+
+            // other user rating prompt
+            rateTutor.setText("Rate " + otherUser.firstName());
+
+            // show the hourly rate
+            hourRate.setText("Hourly Rate: $" + String.format("%.2f", tutor.getPrice()));
+
+            // show total
+            if(seshMin <= 30){
+                total.setText("Total: $" + String.format("%.2f", tutor.getPrice()/2));
+            }else{
+                double totalCost  = seshHr * tutor.getPrice() + (seshMin/60) * tutor.getPrice();
+                total.setText("Total: $" + String.format("%.2f", totalCost));
+            }
+
+
+        }
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +96,9 @@ public class PostSession extends Activity {
         setContentView(R.layout.activity_postsession);
 
         rateTutor = (TextView) findViewById(R.id.rateTutor);
+        sessionLength = (TextView) findViewById(R.id.session_length);
+        hourRate = (TextView) findViewById(R.id.cost_title);
+        total = (TextView) findViewById(R.id.total_cost);
         rating = (RatingBar) findViewById(R.id.ratingBar2);
         doneButton = (Button) findViewById(R.id.doneBtn);
         tutorPic = (ImageView) findViewById(R.id.profilePic);
@@ -53,41 +107,37 @@ public class PostSession extends Activity {
             @Override
             public void onClick(View v) {
                 int numStars = rating.getNumStars();
-                mService.updateRating(session.getCurrentUser().getId(), numStars);
+                // send rating of other user to the server
+                mService.updateRating(otherUser.isTutor() , numStars);
+                currentUser.tutorOff();
+                session.saveUser(currentUser);
                 // return to search and finish
                 Intent intent = new Intent(PostSession.this, Main.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
                 finish();
             }
         });
 
         Bundle extras = getIntent().getExtras();
-        if (extras != null && extras.containsKey("tutor")) {
-            TutorObject tutor = extras.getParcelable("tutor");
-            // TEMP DUMMY TUTORS
+        if (extras != null && extras.containsKey("tutor")){
+             seshLength = extras.getParcelable("seshTime");
 
-            rateTutor.setText("Rate " + tutor.firstName() + ":");
+             long seshHr =  TimeUnit.MILLISECONDS.toHours(seshLength);
+             long seshMin = TimeUnit.MILLISECONDS.toMinutes(seshLength);
+             String totalTime = String.format("%d hours, %d min ",
+                    seshHr, seshMin);
 
-            switch (tutor.firstName()){
-                case "Jess": tutorPic.setImageResource(R.drawable.jess);
-                    tutor.setId("0");
-                    break;
-                case "Eric": tutorPic.setImageResource(R.drawable.eric);
-                    tutor.setId("1");
-                    break;
-                case "Robert": tutorPic.setImageResource(R.drawable.robert);
-                    tutor.setId("2");
-                    break;
-                case "Nadia": tutorPic.setImageResource(R.drawable.nadia);
-                    tutor.setId("3");
-                    break;
-            }
+             sessionLength.setText("Session Length: " + totalTime);
         }
-        session = new LoginManager(getApplicationContext());
+
     }
 
-    public void onResume() {
-        super.onResume();
+    @Override
+    protected void onStart() {
+        super.onStart();
+        session = new LoginManager(getApplicationContext());
         if (session.isLoggedIn()) {
             createService();
         }
@@ -110,17 +160,5 @@ public class PostSession extends Activity {
         Log.v("Service Bound", "Results bound to new service");
     }
 
-    private ServiceConnection mConnection = new ServiceConnection() {
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            DBService.LocalBinder binder = (DBService.LocalBinder) service;
-            mService = binder.getService();
-            mService.setSession(session);
-            mBound = true;
-            mLastLocation = mService.getLocation();
-        }
-        public void onServiceDisconnected(ComponentName arg0) {
-            mBound = false;
-        }
-    };
 
 }

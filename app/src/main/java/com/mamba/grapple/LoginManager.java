@@ -5,6 +5,10 @@ import android.content.SharedPreferences;
 import android.util.Log;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 
 /**
  * Created by vash on 5/8/15.
@@ -25,6 +29,7 @@ public class LoginManager {
    // Sharedpref file name
     private static final String PREF_NAME = "SessionData";
     private static final String CURRENT_USER = "CurrentUser";
+    private static final String FUTURE_BROADCAST = "FutureBroadcast";
     private static final String IS_LOGIN = "IsLoggedIn";
     private static final String AUTH_TOKEN = "Token";
 
@@ -71,7 +76,10 @@ public class LoginManager {
     // returns the logged in user
     public UserObject getCurrentUser(){
         String user = pref.getString(CURRENT_USER, null);
-        currentUser = gson.fromJson(user, UserObject.class);
+
+        if(user != null){
+            currentUser = gson.fromJson(user, UserObject.class);
+        }
 
         return currentUser;
     }
@@ -84,8 +92,42 @@ public class LoginManager {
         editor.commit();
     }
 
-    public void storeBroadcastSettings(){
+    // keeps track if there is a broadcast for the future
+    public void setFutureBroadcast(){
+        editor.putBoolean(FUTURE_BROADCAST, true);
+        editor.commit();
+    }
 
+    public void removeFutureBroadcast(){
+        editor.putBoolean(FUTURE_BROADCAST, false);
+        editor.commit();
+    }
+
+    public Boolean getFutureBroadcast(){
+        return pref.getBoolean(FUTURE_BROADCAST, false);
+    }
+
+    public void storeSelectedCourses(ArrayList<String> selectedCourses){
+        String selected = gson.toJson(selectedCourses);
+        editor.putString("selectedCourses", selected);
+        editor.commit();
+    }
+
+    public ArrayList<String> getSelectedCourses(){
+        String json = pref.getString("selectedCourses", null);
+        Type type = new TypeToken<ArrayList<String>>() {}.getType();
+        ArrayList<String> selectedCourses = gson.fromJson(json, type);
+        return selectedCourses;
+    }
+
+    public void storeAvailString(String availString){
+        editor.putString("availString", availString);
+        editor.commit();
+    }
+
+
+    public String getAvailString(){
+        return pref.getString("availString", null);
     }
 
     public void updateCurrentUserDistance(int distance) {

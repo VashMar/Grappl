@@ -16,7 +16,7 @@ public class TutorSession implements Parcelable {
     public long startTime; // session start date and time in ms
     public ArrayList<LocationObject> meetingSpots;
 
-    public TutorSession(int price, int period, boolean available, ArrayList<LocationObject> meetingSpots, long startTime){
+    public TutorSession(int price, int period, boolean available, ArrayList<LocationObject> meetingSpots,long startTime){
         this.price = price;
         this.period = period;
         this.available = available;
@@ -25,7 +25,7 @@ public class TutorSession implements Parcelable {
     }
 
 
-    protected TutorSession(Parcel in) {
+    protected TutorSession(Parcel in){
         price = in.readDouble();
         period = in.readInt();
         startTime = in.readLong();

@@ -20,7 +20,10 @@ public class UserObject implements Parcelable {
     private String firstName;
     private String lastName;
     private String email;
-    private int rating;
+    private double tutorRating;
+    private double studentRating;
+    private int tutorSessionCount;
+    private int studentSessionCount;
     private String profilePic;
     private float distance;
     private boolean tutoring = false;
@@ -35,14 +38,19 @@ public class UserObject implements Parcelable {
 
 
     // constructor
-    public UserObject(String firstName, String lastName, String id, String email, String profilePic, LocationObject location, TutorSession session){
+    public UserObject(String firstName, String lastName, String id, String email, String profilePic,
+                      LocationObject location, TutorSession session,
+                      int tutorSessionCount, int studentSessionCount, double studentRating, double tutorRating){
         this.firstName = firstName;
         this.lastName = lastName;
         this.id = id;
         this.email = email;
         this.profilePic = profilePic;
         this.location = location;
-
+        this.tutorSessionCount = tutorSessionCount;
+        this.studentSessionCount = studentSessionCount;
+        this.studentRating = studentRating;
+        this.tutorRating = tutorRating;
         if(session != null){
             this.session = session;
             this.tutoring = true;
@@ -135,8 +143,12 @@ public class UserObject implements Parcelable {
         return this.firstName + " " + this.lastName;
     }
 
-    public int getRating(){
-        return this.rating;
+    public double getStudentRating(){
+        return this.studentRating;
+    }
+
+    public double getTutorRating(){
+        return this.tutorRating;
     }
 
     public double getPrice(){
@@ -166,6 +178,11 @@ public class UserObject implements Parcelable {
     public void setTutor(){
         this.tutoring = true;
     }
+
+    public void tutorOff(){
+        this.tutoring = false;
+    }
+
 
     public boolean isAvailable(){return this.session.available;}
 
@@ -211,7 +228,10 @@ public class UserObject implements Parcelable {
         firstName = in.readString();
         lastName = in.readString();
         email = in.readString();
-        rating = in.readInt();
+        studentRating = in.readDouble();
+        tutorRating = in.readDouble();
+        tutorSessionCount = in.readInt();
+        studentSessionCount = in.readInt();
         profilePic = in.readString();
         distance = in.readFloat();
         location = (LocationObject) in.readValue(LocationObject.class.getClassLoader());
@@ -230,7 +250,10 @@ public class UserObject implements Parcelable {
         dest.writeString(firstName);
         dest.writeString(lastName);
         dest.writeString(email);
-        dest.writeInt(rating);
+        dest.writeDouble(studentRating);
+        dest.writeDouble(tutorRating);
+        dest.writeInt(tutorSessionCount);
+        dest.writeInt(studentSessionCount);
         dest.writeString(profilePic);
         dest.writeFloat(distance);
         dest.writeValue(location);

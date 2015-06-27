@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.os.CountDownTimer;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -17,9 +18,11 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.NumberPicker;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -32,14 +35,13 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 public class Broadcast extends Fragment {
 
 
     private OnFragmentInteractionListener mListener;
-
-
 
     private LocationsAdapter locationsAdapter;
     private List<LocationObject> locationList;
@@ -54,13 +56,22 @@ public class Broadcast extends Fragment {
     TextView locText;
     TextView courseText;
     TextView priceText;
+    TextView courseTitle;
+    TextView meetupTitle;
+    TextView whenTitle;
+    TextView priceTitle;
+    TextView countdownTitle;
+    TextView timeView;
     ImageButton locationButton;
     ImageButton timeButton;
     ImageButton priceButton;
     ImageButton courseButton;
     Button broadcastButton;
+    Button cancelButton;
     ProgressBar spinner;
-
+    LinearLayout courseContainer;
+    SeekBar seekTime;
+    Spinner dropdown;
 
 
     // broadcast variables
@@ -74,6 +85,7 @@ public class Broadcast extends Fragment {
     //dialog variables (set to defaults)
     private String whenAvailable;
     private String lengthAvailable;
+    private String availableString;
     private int lengthHr;
     private int lengthMin;
     private String priceString;
@@ -88,7 +100,10 @@ public class Broadcast extends Fragment {
     // Date/Time related
     TimePicker timePicker;
     Calendar rightNow;
+    CounterClass timer;
 
+    LoginManager session;
+    UserObject currentUser;
 
     public Broadcast(){
         // Required empty public constructor
@@ -104,14 +119,17 @@ public class Broadcast extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState){
 
+
         //initialize  presets
         selectedLocations = new ArrayList<LocationObject>();
         selectedCourses = new ArrayList<String>();
         whenAvailable = "Now";
+        lengthAvailable = "2 hours";
+        availableString = whenAvailable+", "+lengthAvailable;
         availableTime = 120;
         hrRate = 10.00;
-        lengthAvailable = "2 hours";
         lengthHr = 0;
+        broadcastMS = 0;
         lengthMin = availableTime;
 
 
@@ -125,9 +143,12 @@ public class Broadcast extends Fragment {
     public void onStart(){
         Log.v("Broadcast Settings", "Started");
         super.onStart();
+        currentUser = ((Main) getActivity()).currentUser;
+        session = ((Main) getActivity()).session;
 
         // grab UI elements
         broadcastButton = (Button) getView().findViewById(R.id.broadcastButton);
+        cancelButton = (Button) getView().findViewById(R.id.cancelButton);
         spinner = (ProgressBar) getView().findViewById(R.id.spinner);
         courseButton  = (ImageButton) getView().findViewById(R.id.courseButton);
         locationButton = (ImageButton) getView().findViewById(R.id.locationButton);
@@ -137,6 +158,13 @@ public class Broadcast extends Fragment {
         courseText = (TextView) getView().findViewById(R.id.courseText);
         availText = (TextView) getView().findViewById(R.id.availText);
         priceText = (TextView) getView().findViewById(R.id.priceText);
+        courseTitle = (TextView) getView().findViewById(R.id.courseTitle);
+        meetupTitle = (TextView) getView().findViewById(R.id.meetupTitle);
+        whenTitle = (TextView) getView().findViewById(R.id.whenTitle);
+        priceTitle = (TextView) getView().findViewById(R.id.priceTitle);
+        countdownTitle = (TextView) getView().findViewById(R.id.countdownTitle);
+        timeView = (TextView) getView().findViewById(R.id.timeView);
+        courseContainer = (LinearLayout) getView().findViewById(R.id.courseContainer);
 
         // give main control of spinner
         ((Main) getActivity()).setSpinner(spinner);
@@ -156,8 +184,6 @@ public class Broadcast extends Fragment {
                    // we expect the auth response
                    startActivityForResult(intent, 1);
                }else{
-                   spinner.setVisibility(View.VISIBLE);
-                   broadcastButton.setEnabled(false);
                    startBroadcast();
                }
 
@@ -191,6 +217,18 @@ public class Broadcast extends Fragment {
             }
         });
 
+        Log.v("Is tutor", currentUser.isTutor()+"");
+
+        if(currentUser != null && session.getFutureBroadcast()){
+            selectedLocations = currentUser.getMeetingSpots();
+            selectedCourses = session.getSelectedCourses();
+            availableString = session.getAvailString();
+            availableTime = currentUser.sessionLength();
+            priceString = String.format("%.2f", currentUser.getPrice());
+            broadcastMS = currentUser.getSessionStart();
+            setAllTextViews();
+            countdownView();
+        }
 
 
     }
@@ -207,67 +245,53 @@ public class Broadcast extends Fragment {
         broadcastButton.setEnabled(true);
     }
 
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        if(timer != null){
+            timer.cancel();
+        }
+    }
 
 
 
 
     public void startBroadcast() {
-        if (selectedLocations.size() > 0 && selectedCourses.size() > 0) {
-            Log.v("Starting Broadcast..", "Broadcast initiated");
-            Log.v("Broadcast MS", broadcastMS+"");
-            Log.v("Available Time", availableTime+"");
-            Log.v("Hourly Rate", hrRate+"");
-            Log.v("Selected Course", selectedCourses+"");
-            Log.v("Selected Locations", selectedLocations+"");
+        if(selectedLocations.size() > 0 && selectedCourses.size() > 0){
+
+            if(broadcastMS == 0 || broadcastMS <= rightNow.getTimeInMillis()){
+                Log.v("Starting Broadcast..", "Broadcast initiated");
+                Log.v("Broadcast MS", broadcastMS+"");
+                Log.v("Available Time", availableTime+"");
+                Log.v("Hourly Rate", hrRate+"");
+                Log.v("Selected Course", selectedCourses + "");
+                Log.v("Selected Locations", selectedLocations + "");
+                spinner.setVisibility(View.VISIBLE);
+                broadcastButton.setEnabled(false);
+
+                Intent intent = new Intent(getActivity(), Waiting.class);
+                intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
+                intent.putExtra("hrRate", hrRate);
+                intent.putStringArrayListExtra("selectedCourses", selectedCourses);
+                intent.putExtra("available", availableString);
+                ((Main) getActivity()).setBroadCastIntent(intent);
 
 
-            if(whenAvailable.equals("Now")){
-                rightNow = Calendar.getInstance();
-                broadcastMS = rightNow.getTimeInMillis(); // get the latest time before broadcasting
-
-                if(endTime.length() < 1){
-                    // by default the end time is 2 hours from now
-                    int timeHr = rightNow.get(Calendar.HOUR_OF_DAY) + 2;
-                    int timeMin = rightNow.get(Calendar.MINUTE);
-                    endTime = timeMin+"";
-
-                    if(timeMin < 10){
-                        endTime = "0" + timeMin;
-                    }
-
-                    if(timeHr >= 24){
-                        timeHr -= 24;
-                        endTime = (timeHr == 0) ? "12:" + endTime + "AM" : timeHr + ":" + endTime + "AM";
-                    }else if(timeHr >= 12){
-                        timeHr -= 12;
-                        endTime = (timeHr == 0) ? "12:" + endTime + "PM" : timeHr + ":" + endTime + "PM";
-                    }else{
-                        endTime = timeHr + ":" +  endTime +"AM";
-                    }
-                }
-
-
-            }
-
-
-
-            if(whenAvailable.equals("Tomorrow")){
-                endTime += " Tomorrow";
             }else{
-                endTime += " Today";
+                countdownView();
+                session.setFutureBroadcast();
             }
 
-
-//            ((Main) getActivity()).session.updateCurrentUserDistance(distance);
-            Intent intent = new Intent(getActivity(), Waiting.class);
-            intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
-            intent.putExtra("hrRate", hrRate);
-            intent.putStringArrayListExtra("selectedCourses", selectedCourses);
-            intent.putExtra("endTime", endTime);
-            ((Main) getActivity()).setBroadCastIntent(intent);
+            // notify backend of the broadcast
             ((Main) getActivity()).mService.startBroadcast(broadcastMS, availableTime, hrRate, selectedCourses, selectedLocations);
-            //startActivity(intent);
-        }else {
+
+            //store the available string
+            session.storeAvailString(availableString);
+            session.storeSelectedCourses(selectedCourses);
+
+
+
+        }else{
             // we can only broadcast if the tutor has a selected a meeting spot
             if(selectedCourses.size() < 1){
                 courseText.setError("You must choose a course!");
@@ -432,8 +456,8 @@ public class Broadcast extends Fragment {
         View view = ((Activity)context).getLayoutInflater().inflate(R.layout.dialog_broadcastschedule, null);
         timeLength = (TextView) view.findViewById(R.id.time);
         final TextView timeError = (TextView) view.findViewById(R.id.timeError);
-        Spinner spinner = (Spinner) view.findViewById(R.id.spinner);
-        SeekBar seekTime = (SeekBar) view.findViewById(R.id.seekTime);
+        dropdown = (Spinner) view.findViewById(R.id.spinner);
+        seekTime  = (SeekBar) view.findViewById(R.id.seekTime);
         timePicker = (TimePicker) view.findViewById(R.id.timePicker);
         timePicker.setEnabled(false);
 
@@ -446,11 +470,11 @@ public class Broadcast extends Fragment {
         // Specify the layout to use when the list of choices appears
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         // Apply the adapter to the spinner
-        spinner.setAdapter(adapter);
+        dropdown.setAdapter(adapter);
 
 
 
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        dropdown.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
                 // your code here
@@ -460,13 +484,12 @@ public class Broadcast extends Fragment {
                     timePicker.setEnabled(true);
                 }
 
-                whenAvailable = parentView.getItemAtPosition(position).toString();
+           ;
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parentView) {
-                // your code here
-                whenAvailable = "Now";
+
             }
 
         });
@@ -483,19 +506,7 @@ public class Broadcast extends Fragment {
         seekTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                availableTime = 30 + 30 * progress;
-                lengthMin = availableTime;
-                lengthHr = lengthMin / 60;
-                if (lengthHr > 0) {
-                    lengthMin = lengthMin % 60;
-                    lengthAvailable = (lengthMin > 0) ? lengthHr + " hours " + lengthMin + " min" : lengthHr + " hours ";
-                } else {
-                    lengthAvailable = lengthMin + " min";
-                }
-
-
-                timeLength.setText(lengthAvailable);
-
+                timeLength.setText( getLengthAvailable(progress));
             }
 
             @Override
@@ -533,7 +544,7 @@ public class Broadcast extends Fragment {
             @Override
             public void onClick(View view) {
                 // close dialog, show when available
-
+                whenAvailable = dropdown.getSelectedItem().toString();
                 if(!whenAvailable.equals("Now")){
 
                     if(whenAvailable.equals("Today")){
@@ -612,8 +623,13 @@ public class Broadcast extends Fragment {
                     }
 
                     lengthAvailable = startTime + "-" + endTime;
+
+                }else{
+                    broadcastMS = 0;
+                    lengthAvailable = getLengthAvailable(seekTime.getProgress());
                 }
 
+                availableString = whenAvailable+", "+lengthAvailable;
                 insertAvailText();
                 alert.cancel();
             }
@@ -695,6 +711,21 @@ public class Broadcast extends Fragment {
         }
     }
 
+    public String getLengthAvailable(int progress){
+        availableTime = 30 + 30 * progress;
+        lengthMin = availableTime;
+        lengthHr = lengthMin / 60;
+        if (lengthHr > 0) {
+            lengthMin = lengthMin % 60;
+            lengthAvailable = (lengthMin > 0) ? lengthHr + " hours " + lengthMin + " min" : lengthHr + " hours ";
+        } else {
+            lengthAvailable = lengthMin + " min";
+        }
+
+
+        return lengthAvailable;
+    }
+
     public void insertLocText(){
         String locationString = "";
         int i = 1;
@@ -729,15 +760,152 @@ public class Broadcast extends Fragment {
     }
 
     public void insertAvailText(){
-        availText.setText(whenAvailable+", "+lengthAvailable);
+        availText.setText(availableString);
     }
 
     public void insertPriceText(){
         priceText.setText(priceString + "  an hour");
         hrRate = Double.parseDouble(priceString);
-        Log.v("Hour Rate", hrRate+"");
+        Log.v("Hour Rate", hrRate + "");
     }
 
+
+
+
+
+    public void setAllTextViews(){
+        insertLocText();
+        insertCourseText();
+        insertAvailText();
+        insertPriceText();
+    }
+
+ /*********************************************** Switch between views  ******************************************/
+   // sets the view to countdown mode for a future broadcast
+    public void countdownView(){
+        hideTitles();
+        showCountdown();
+        initiateCountdown();
+        showCancelButton();
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) courseContainer.getLayoutParams();
+        params.addRule(RelativeLayout.BELOW, R.id.timeView);
+    }
+
+
+    public void hideTitles(){
+        courseTitle.setVisibility(View.GONE);
+        meetupTitle.setVisibility(View.GONE);
+        whenTitle.setVisibility(View.GONE);
+        priceTitle.setVisibility(View.GONE);
+    }
+
+    public void showCountdown(){
+        countdownTitle.setVisibility(View.VISIBLE);
+        timeView.setVisibility(View.VISIBLE);
+    }
+
+    public void showCancelButton(){
+        broadcastButton.setVisibility(View.GONE);
+        cancelButton.setVisibility(View.VISIBLE);
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                timer.cancel();
+                // continue with ending broadcast
+                ((Main) getActivity()).mService.endBroadcast();
+                session.removeFutureBroadcast();
+                Log.v("Ending Broadcast", "Tutoring Off");
+                currentUser.tutorOff();
+                session.saveUser(currentUser);
+                broadcastView();
+            }
+        });
+    }
+
+    //sets the view to settings for a new broadcast
+    public void broadcastView(){
+        hideCountdown();
+        showTitles();
+        showBroadcastButton();
+        RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) courseContainer.getLayoutParams();
+        params.addRule(RelativeLayout.BELOW, R.id.courseTitle);
+    }
+
+
+    public void showTitles(){
+        courseTitle.setVisibility(View.VISIBLE);
+        meetupTitle.setVisibility(View.VISIBLE);
+        whenTitle.setVisibility(View.VISIBLE);
+        priceTitle.setVisibility(View.VISIBLE);
+    }
+
+    public void hideCountdown(){
+        countdownTitle.setVisibility(View.GONE);
+        timeView.setVisibility(View.GONE);
+    }
+
+    public void showBroadcastButton(){
+        broadcastButton.setVisibility(View.VISIBLE);
+        cancelButton.setVisibility(View.GONE);
+
+    }
+
+
+    /******************************************* Countdown Management *************************************************************/
+
+    public void initiateCountdown(){
+        rightNow = Calendar.getInstance();
+        long millis = broadcastMS - rightNow.getTimeInMillis();
+        String hms = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
+                TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+                TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
+
+        timeView.setText(hms);
+        timer = new CounterClass(millis,1000);
+        timer.start();
+    }
+
+
+    public class CounterClass extends CountDownTimer{
+        public CounterClass(long millisInFuture, long countDownInterval) {
+            super(millisInFuture, countDownInterval);
+        }
+        @Override
+        public void onFinish() {
+            timeView.setText("Completed.");
+        }
+
+        @Override
+        public void onTick(long millisUntilFinished) {
+            long millis = millisUntilFinished;
+            String hms = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
+                    TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+                    TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
+            System.out.println(hms);
+            timeView.setText(hms);
+        }
+    }
+
+
+
+
+
+
+    /**
+     * This interface must be implemented by activities that contain this
+     * fragment to allow an interaction in this fragment to be communicated
+     * to the activity and potentially other fragments contained in that
+     * activity.
+     * <p/>
+     * See the Android Training lesson <a href=
+     * "http://developer.android.com/training/basics/fragments/communicating.html"
+     * >Communicating with Other Fragments</a> for more information.
+     */
+    public interface OnFragmentInteractionListener{
+        // TODO: Update argument type and name
+        public void onFragmentInteraction(Uri uri);
+    }
 
     public void locPopulate(){
 
@@ -765,22 +933,6 @@ public class Broadcast extends Fragment {
 
         thread.start();
 
-    }
-
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener{
-        // TODO: Update argument type and name
-        public void onFragmentInteraction(Uri uri);
     }
 
 

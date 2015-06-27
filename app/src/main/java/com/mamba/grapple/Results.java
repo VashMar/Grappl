@@ -68,7 +68,6 @@ public class Results extends Activity {
                 if (!session.isLoggedIn()) {
                     // transfer the user to the register page
                     Intent intent = new Intent(Results.this, SignIn.class);
-
                     // we expect the auth response
                     startActivityForResult(intent, 1);
                 } else {
@@ -76,6 +75,11 @@ public class Results extends Activity {
                     UserObject selectedTutor = tutorList.get(position);
                     Log.v("selected tutor", String.valueOf(selectedTutor));
                     selectedTutor.setTutor();
+
+                    // takes the user out of tutor mode
+                    currentUser.tutorOff();
+                    session.saveUser(currentUser);
+
                     // transition to specific tutors page
                     Intent intent = new Intent(Results.this, Meetup.class);
                     intent.putExtra("otherUser", selectedTutor);
@@ -179,6 +183,7 @@ public class Results extends Activity {
             mService.setSession(session);
             adapter.setUserLocation(mService.getLocation());
             mBound = true;
+            mService.resetStates();
         }
 
         public void onServiceDisconnected(ComponentName arg0) {

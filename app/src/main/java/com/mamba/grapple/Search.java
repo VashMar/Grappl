@@ -304,7 +304,6 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
             Log.v("tutorList", String.valueOf(tutorList.size()));
 
-
             if(tutorList.size() > 0){
                 Log.v("Tutor: " , tutorList.get(0).toString());
             }

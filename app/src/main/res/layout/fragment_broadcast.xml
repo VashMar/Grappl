@@ -19,11 +19,13 @@
         android:layout_alignParentStart="true">
 
 
+
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Selected course(s):"
-            android:id="@+id/selectedTitle"
+            android:id="@+id/courseTitle"
             android:layout_centerHorizontal="true"
             android:layout_gravity="center_horizontal|top"
             android:textSize="20dp"
@@ -35,7 +37,8 @@
             android:id="@+id/courseContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/selectedTitle"
+            android:layout_below="@id/courseTitle"
+
             android:layout_marginTop="10dp"
             android:layout_centerHorizontal="true"
             android:orientation="horizontal">
@@ -56,6 +59,7 @@
             android:textStyle="italic"
             android:paddingLeft="10dp"
             android:paddingRight="10dp"
+
         />
 
         </LinearLayout>
@@ -64,19 +68,20 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Meetup spot(s):"
-            android:id="@+id/selectedMeeting"
+            android:id="@+id/meetupTitle"
             android:layout_centerHorizontal="true"
             android:layout_gravity="center_horizontal|top"
             android:textSize="20dp"
             android:layout_marginTop="15dp"
             android:layout_below="@+id/courseContainer"
+
             />
 
         <LinearLayout
             android:id="@+id/locationContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/selectedMeeting"
+            android:layout_below="@id/meetupTitle"
             android:layout_marginTop="10dp"
             android:layout_centerHorizontal="true"
             android:orientation="horizontal">
@@ -112,6 +117,7 @@
             android:textSize="20dp"
             android:layout_marginTop="15dp"
             android:layout_below="@+id/locationContainer"
+
             />
 
 
@@ -155,6 +161,7 @@
             android:textSize="20dp"
             android:layout_marginTop="15dp"
             android:layout_below="@+id/timeContainer"
+
             />
 
         <LinearLayout
@@ -193,6 +200,21 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:text="Cancel Broadcast"
+            android:id="@+id/cancelButton"
+            android:layout_gravity="center_horizontal|bottom"
+            android:background="@color/theme"
+            android:textColor="@color/white"
+            android:visibility="gone"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true" />
+
+
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
             android:text="Set Broadcast"
             android:id="@+id/broadcastButton"
             android:layout_gravity="center_horizontal|bottom"
@@ -211,8 +233,75 @@
             android:layout_below="@+id/locationContainer"
             android:layout_centerHorizontal="true" />
 
+        <TextView
+            android:id="@+id/countdownTitle"
+            android:text="Time to broadcast:"
+            android:textSize="25dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginBottom="5dp"
+            android:layout_centerHorizontal="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"/>
+
+        <TextView
+            android:id="@+id/timeView"
+            android:text="0:00:00"
+            android:textSize="40dp"
+            android:layout_below="@id/countdownTitle"
+            android:visibility="gone"
+            android:layout_marginBottom="20dp"
+            android:layout_centerHorizontal="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
 
     </RelativeLayout>
+
+
+    <!--<RelativeLayout-->
+        <!--android:layout_width="fill_parent"-->
+        <!--android:layout_height="fill_parent"-->
+        <!--android:id="@+id/countdownContainer"-->
+        <!--android:visibility="gone"-->
+        <!--android:layout_alignParentLeft="true"-->
+        <!--android:layout_alignParentStart="true">-->
+
+
+        <!--<TextView-->
+            <!--android:id="@+id/countdownTitle"-->
+            <!--android:text="Time to broadcast:"-->
+            <!--android:textSize="25dp"-->
+            <!--android:layout_marginTop="100dp"-->
+            <!--android:layout_marginBottom="20dp"-->
+            <!--android:layout_centerHorizontal="true"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content" />-->
+
+        <!--<TextView-->
+            <!--android:id="@+id/timeView"-->
+            <!--android:text="0:00:00"-->
+            <!--android:textSize="40dp"-->
+            <!--android:layout_below="@id/countdownTitle"-->
+            <!--android:layout_centerHorizontal="true"-->
+            <!--android:layout_width="wrap_content"-->
+            <!--android:layout_height="wrap_content" />-->
+
+
+        <!--<Button-->
+            <!--android:layout_width="fill_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:text="Cancel"-->
+            <!--android:id="@+id/cancelButton"-->
+            <!--android:layout_gravity="center_horizontal|bottom"-->
+            <!--android:background="@color/theme"-->
+            <!--android:textColor="@color/white"-->
+            <!--android:layout_alignParentBottom="true"-->
+            <!--android:layout_alignParentLeft="true"-->
+            <!--android:layout_alignParentStart="true" />-->
+
+    <!--</RelativeLayout>-->
+
 
 
 </RelativeLayout>

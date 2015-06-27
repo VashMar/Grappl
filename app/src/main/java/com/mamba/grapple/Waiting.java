@@ -1,5 +1,6 @@
 package com.mamba.grapple;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -8,7 +9,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.graphics.Color;
 import android.location.Location;
 import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
@@ -29,13 +29,8 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
-import com.google.android.gms.maps.model.CircleOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.maps.model.PolylineOptions;
-
-import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +60,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     private ArrayList<LocationObject> meetingSpots;
     private ArrayList<String> selectedCourses;
     private double hrRate;
-    private String endTime = "";
+    private String available = "";
 
     // receiver to handle server responses for this activity
     private BroadcastReceiver waitingReceiver = new BroadcastReceiver(){
@@ -84,12 +79,14 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                     UserObject user = extras.getParcelable("user");
                     String place = extras.getString("place");
                     LocationObject meetingSpot = findMeetingSpot(place);
+                    mService.newConvo();
                     Intent chatIntent = new Intent(Waiting.this, Chat.class);
                     chatIntent.putExtra("user", user);
                     chatIntent.putExtra("meetingSpot", meetingSpot);
                     startActivity(chatIntent);
                     finish();
                 }
+
             }
         }
     };
@@ -122,7 +119,12 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 String responseType = extras.getString("responseType");
                 Log.v("responseType", responseType);
                 Log.v("Waiting Activity", "received response: " + responseType);
+
+                if (responseType.equals("removeAvailableDone")) {
+                    ((Activity) Waiting.this).finish();
+                }
             }
+
         }
 
     };
@@ -130,6 +132,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
+        Log.v("Waiting", "Created");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_waiting);
 
@@ -145,7 +148,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             meetingSpots = extras.getParcelableArrayList("meetingSpots");
             selectedCourses = extras.getStringArrayList("selectedCourses");
             hrRate = extras.getDouble("hrRate");
-            endTime = extras.getString("endTime");
+            available = extras.getString("available");
         }
 
         getActionBar().setTitle("Waiting...");
@@ -170,7 +173,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         tutorName.setText(currentUser.getName());
         tutorPrice.setText("Hourly Rate: $" + String.format("%.2f", hrRate));
         tutorCourses.setText("Courses: " + courseString);
-        tutorAvailability.setText("Available Until: " + endTime);
+        tutorAvailability.setText("Available: " + available);
 
 
         cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -188,8 +191,8 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     }
 
 
-    public void onResume(){
-        super.onResume();
+    public void onStart(){
+        super.onStart();
         if (session.isLoggedIn()) {
             createService();
         }
@@ -205,7 +208,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     }
 
     @Override
-    protected void onStop() {
+    protected void onStop(){
         super.onStop();
         // Unbind from the service
         if (mBound) {
@@ -216,6 +219,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         LocalBroadcastManager.getInstance(this).unregisterReceiver(multicastReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(waitingReceiver);
     }
+
 
     @Override
     public void onBackPressed(){
@@ -311,7 +315,10 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                     public void onClick(DialogInterface dialog, int which) {
                         // continue with ending broadcast
                         mService.endBroadcast();
-                        finish();
+                        Log.v("Waiting Closing", "Tutoring Ending");
+                        // turn the tutoring switch off
+                        currentUser.tutorOff();
+                        session.saveUser(currentUser);
                     }
                 })
                 .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {

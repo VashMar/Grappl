@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
@@ -37,10 +38,6 @@ public class Chat extends Activity {
 
     private MessagesAdapter adapter;
     private List<MessageObject> messageList;
-    private GoogleApiClient mGoogleApiClient;
-
-    private LocationsAdapter locationsAdapter;
-    private List<LocationObject> locationList;
     private LocationObject selectedLocation;
 
 
@@ -57,7 +54,6 @@ public class Chat extends Activity {
 //    ImageButton locationList;
 
 
-    private boolean grappled = false;
     LoginManager session;
 
 
@@ -71,19 +67,24 @@ public class Chat extends Activity {
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
+            mService.connectSocket();
+            otherUser = mService.grappledUser;
+            getActionBar().setTitle(otherUser.getName());
+            getActionBar().setIcon(R.drawable.user_icon);
 
-            // create a new conversation if this is the first time
-            if(!grappled){
-               mService.newConvo();
-            }
+
             messageList = mService.retrieveConvo();
             adapter = new MessagesAdapter(Chat.this,messageList);
             messagesContainer.setAdapter(adapter);
             adapter.notifyDataSetChanged();
 
+
+            RelativeLayout tutorPrompt = (RelativeLayout) findViewById(R.id.tutorPrompt);
+            Log.v("Is tutor", currentUser.isTutor()+"");
+            Log.v("Meetup State", mService.inMeetup()+"");
             if(currentUser.isTutor() && !mService.inMeetup()){
                 Log.v("Chat Activity", "Tutor entered..");
-                RelativeLayout tutorPrompt = (RelativeLayout) findViewById(R.id.tutorPrompt);
+
                 Button acceptTutoring = (Button) findViewById(R.id.acceptTutoring);
                 Button declineTutoring = (Button) findViewById(R.id.declineTutoring);
                 final TextView meetupQuestion = (TextView) findViewById(R.id.meetupQuestion);
@@ -107,6 +108,8 @@ public class Chat extends Activity {
                     }
                 });
 
+            }else{
+                tutorPrompt.setVisibility(View.GONE);
             }
 
         }
@@ -116,8 +119,9 @@ public class Chat extends Activity {
     };
 
 
+
     // receiver to handle server responses for this activity
-    private BroadcastReceiver chatReceiver = new BroadcastReceiver(){
+    private BroadcastReceiver grapplReceiver = new BroadcastReceiver(){
 
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -127,8 +131,8 @@ public class Chat extends Activity {
             if(extras != null){
                 String responseType = extras.getString("responseType");
                 Log.v("responseType", responseType);
-                Log.v("Chat Activity", "received response: " + responseType);
-
+                Log.v("Chat Activity", " grappl receiver received: " + responseType);
+                // TODO: Change to switch statement
                 // if there's a new message add it to the list and display
                 if(responseType == "message"){
                     adapter.notifyDataSetChanged();
@@ -139,9 +143,22 @@ public class Chat extends Activity {
                     meet.putExtra("meetingPoint", selectedLocation);
                     startActivity(meet);
                 }
+
+                if(responseType.equals("grapplEnded")){
+                    endGrappleAlert();
+                }
+
+                if(responseType.equals("sessionRequest")){
+                    acceptRequestPrompt();
+                }
+
+                if(responseType.equals("startSession")){
+                    sessionAccept();
+                }
             }
         }
     };
+
 
 
 
@@ -156,6 +173,7 @@ public class Chat extends Activity {
 
         messagesContainer = (ListView) findViewById(R.id.list_view_messages);
         sendButton = (ImageButton) findViewById(R.id.btnSend);
+        mapButton = (ImageButton) findViewById(R.id.mapicon);
         chatInput = (EditText)  findViewById(R.id.msgInput);
 
         sendButton.setOnClickListener(new View.OnClickListener(){
@@ -172,14 +190,21 @@ public class Chat extends Activity {
 
             }
         });
+
+
+        mapButton.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                Intent meet = new Intent(Chat.this, Meetup.class);
+                meet.putExtra("meetingPoint", selectedLocation);
+                meet.putExtra("otherUser", otherUser);
+                startActivity(meet);
+            }
+        });
     }
 
     @Override
     protected void onResume(){
         super.onResume();
-        //get the latest session and user data
-        session = new LoginManager(getApplicationContext());
-        currentUser = session.getCurrentUser();
     }
 
 
@@ -193,13 +218,18 @@ public class Chat extends Activity {
     @Override
     protected void onStart(){
         super.onStart();
+
+        //get the latest session and user data
+        session = new LoginManager(getApplicationContext());
+        currentUser = session.getCurrentUser();
+
         // bind to service
         Intent intent = new Intent(this, DBService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
         // Register to receive messages.
-        LocalBroadcastManager.getInstance(this).registerReceiver(chatReceiver,
-                new IntentFilter("chatReceiver"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(grapplReceiver,
+                new IntentFilter("grapplReceiver"));
     }
 
     @Override
@@ -213,7 +243,7 @@ public class Chat extends Activity {
         }
 
         // Unregister the receiver
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(chatReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(grapplReceiver);
     }
 
     @Override
@@ -232,17 +262,54 @@ public class Chat extends Activity {
         // get the connected users data
         Bundle extras = getIntent().getExtras();
         if(extras != null){
-            otherUser = extras.getParcelable("user");
             selectedLocation = extras.getParcelable("meetingSpot");
-            getActionBar().setTitle(otherUser.getName());
-            getActionBar().setIcon(R.drawable.user_icon);
-
-            // mark that grapple already happened
-            if(extras.containsKey("beenGrappled")){
-                grappled = true;
-            }
-
         }
+    }
+
+
+    public void sessionAccept(){
+        Intent intent = new Intent(Chat.this, InSession.class);
+        startActivity(intent);
+        finish();
+    }
+
+
+    public void endGrappleAlert(){
+        new AlertDialog.Builder(this)
+            .setTitle("Grappl Ended")
+            .setMessage(otherUser.firstName() + " has cancelled the Grappl")
+            .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    mService.resetStates();
+                    returnHome();
+                }
+            })
+
+            .setIcon(android.R.drawable.ic_dialog_alert)
+            .show();
+    }
+
+
+
+    // launches alert dialog signalling grapple will end
+    private void acceptRequestPrompt(){
+        new AlertDialog.Builder(this)
+                .setTitle(otherUser.firstName() + " wants to start the session")
+                .setMessage("Are you ready to begin?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // send acceptance message and continue to session screen
+                        mService.setMeetup();
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener(){
+                    public void onClick(DialogInterface dialog, int which) {
+                        // do nothing
+
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
     }
 
 
@@ -254,7 +321,7 @@ public class Chat extends Activity {
 
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu(Menu menu){
         getMenuInflater().inflate(R.menu.menu_grapple, menu);
         return super.onCreateOptionsMenu(menu);
     }
@@ -266,8 +333,8 @@ public class Chat extends Activity {
         // as you specify a parent activity in AndroidManifest.xml.
         switch (item.getItemId()) {
             case R.id.action_endGrapple:
-                mService.endGrapple();
-                finish();
+                mService.cancelGrappl();
+                returnHome();
                 return true;
             case R.id.action_settings:
                 //TODO
@@ -283,53 +350,16 @@ public class Chat extends Activity {
     }
 
 
-
-//
-//    public void sendDummyMsg(){
-//
-//        new Handler().postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                // display locally
-//                MessageObject msg  = new MessageObject(tutor.firstName(), "Hi!", false, null);
-//                messageList.add(msg);
-//                adapter.notifyDataSetChanged();
-//            }
-//        }, 2000);
-//
-//
-//        new Handler().postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                // display locally
-//                MessageObject msg = new MessageObject(tutor.firstName(), "Can you meet here? I've got a table reserved: ", false, null);
-//                messageList.add(msg);
-//                adapter.notifyDataSetChanged();
-//
-//            }
-//        }, 3200);
-//
-//
-//        new Handler().postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                // display locally
-//                LocationObject loc = new LocationObject(43.071394, -89.408676);
-//                MessageObject msg = new MessageObject(tutor.firstName(), "215 N Randall Ave, Madison, WI 53706" , false, loc);
-//                messageList.add(msg);
-//                adapter.notifyDataSetChanged();
-//            }
-//        }, 4000);
-//
-//
-//
-//
-//
-//    }
-//
-
-
-
+    public void returnHome(){
+        // turn the tutoring switch off
+        currentUser.tutorOff();
+        session.saveUser(currentUser);
+        Intent intent = new Intent(Chat.this, Main.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
+    }
 
 
 }

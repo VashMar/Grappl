@@ -1,13 +1,18 @@
 package com.mamba.grapple;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.CountDownTimer;
 import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -98,6 +103,27 @@ public class InSession extends Activity {
     };
 
 
+    // receiver to handle server responses for this activity
+    private BroadcastReceiver seshReceiver = new BroadcastReceiver(){
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // intent can contain any data
+            Bundle extras = intent.getExtras();
+
+            if(extras != null){
+                String responseType = extras.getString("responseType");
+                Log.v("responseType", responseType);
+                Log.v("In Session Activity", "received response: " + responseType);
+                if(responseType.equals("sessionEnded")){
+                    // notify the user
+                    sessionEndedAlert(extras.getLong("seshTime"));
+                }
+            }
+        }
+    };
+
+
 
 
     @Override
@@ -134,26 +160,31 @@ public class InSession extends Activity {
 
         btnStop.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                timer.cancel();
-                timer.onFinish();
-
-                // go to receipt
-                Intent intent = new Intent(InSession.this, PostSession.class);
-                intent.putExtra("tutor", otherUser);
-                startActivity(intent);
-                finish();
+                endSessionPrompt();
             }
         });
 
 
     }
 
-    public void onResume() {
-        super.onResume();
-        if (session.isLoggedIn()){
-            createService();
-        }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        session = new LoginManager(getApplicationContext());
+        currentUser = session.getCurrentUser();
+        createService();
+
+
+        // Register to receive messages.
+        // We are registering an observer (mMessageReceiver) to receive Intents
+        // with actions named "custom-event-name".
+        LocalBroadcastManager.getInstance(this).registerReceiver(seshReceiver,
+                new IntentFilter("seshReceiver"));
+
     }
+
 
     @Override
     protected void onStop(){
@@ -163,6 +194,13 @@ public class InSession extends Activity {
             unbindService(mConnection);
             mBound = false;
         }
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(seshReceiver);
+    }
+
+
+    public void onBackPressed(){
+        endSessionPrompt();
     }
 
     public void createService(){
@@ -173,9 +211,72 @@ public class InSession extends Activity {
     }
 
     private void startCountdown(){
+//        mService.sessionStarted(sessionLengthMS);
         timer = new SessionCounter(sessionRemaining, 10000);
         timer.start();
     }
+
+
+
+
+
+    // launches alert dialog signalling grapple will end
+    private void endSessionPrompt(){
+        new AlertDialog.Builder(this)
+                .setTitle("End Session?")
+                .setMessage("Are you sure you'd like to end the session?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // shut the timer off
+                        timer.cancel();
+                        timer.onFinish();
+
+                        Long seshTime = sessionLengthMS - sessionRemaining;
+                        //send the time passed to other user
+                        mService.endSession(seshTime);
+
+                        // go to receipt
+                        Intent intent = new Intent(InSession.this, PostSession.class);
+                        intent.putExtra("seshTime", seshTime);
+                        startActivity(intent);
+                        finish();
+                    }
+                })
+                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // do nothing
+
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    public void sessionEndedAlert(final long seshTime){
+        new AlertDialog.Builder(this)
+                .setTitle("Session Ended")
+                .setMessage(otherUser.firstName() + " has ended the session")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // shut the timer off
+                        timer.cancel();
+                        timer.onFinish();
+
+
+                        // go to receipt
+                        Intent intent = new Intent(InSession.this, PostSession.class);
+                        intent.putExtra("seshTime", seshTime);
+                        startActivity(intent);
+                        finish();
+                    }
+                })
+
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+
+
 
 
     @Override
@@ -207,7 +308,7 @@ public class InSession extends Activity {
 
         @Override
         public void onFinish() {
-//            textViewTime.setText("Completed.");
+            arcProgress.setBottomText("Completed.");
         }
 
         @Override
