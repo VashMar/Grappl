@@ -169,6 +169,7 @@ public class Results extends Activity {
             case R.id.action_signout:
                 Intent myIntent = new Intent(Results.this, SignIn.class);
                 session.logout();
+                mService.endConnection();
                 startActivity(myIntent);
                 return true;
             default:

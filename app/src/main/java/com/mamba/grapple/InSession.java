@@ -35,6 +35,8 @@ public class InSession extends Activity {
 //    TextView textViewTime;
     Button btnPause;
     Button btnStop;
+    TextView currentUsername;
+    TextView otherUsername;
 
     UserObject otherUser;
     UserObject currentUser;
@@ -57,44 +59,15 @@ public class InSession extends Activity {
 
     private ServiceConnection mConnection = new ServiceConnection(){
         public void onServiceConnected(ComponentName className, IBinder service) {
+            Log.v("In session", "Service Connected");
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mService.setSession(session);
             mBound = true;
 
-
-            otherUser = mService.getGrappledUser();
-            currentUser = session.getCurrentUser();
-
-            // find whos the tutor
-            tutor =  (otherUser.isTutor()) ?  otherUser : currentUser;
-            sessionLength = tutor.sessionLength();
-            // get the session time in hours and minutes
-            int hr = sessionLength/60;
-            int min =sessionLength%60;
-
-            // display time accordingly
-            if(hr > 0 && min > 0){
-                arcProgress.setBottomText("Session: " + hr + " hour " + min + " min" );
-            }else if(hr > 0){
-                arcProgress.setBottomText("Session: " + hr + " hour " );
-            }else{
-                arcProgress.setBottomText("Session: " + min + " min" );
-            }
-
-
-            // convert to long in ms
-             sessionLengthMS = MS_IN_MIN * (long) sessionLength;
-
-            // set our session remaining to tutors availability time (in ms)
-            if (sessionLengthMS > sessionRemaining) {
-                sessionRemaining = sessionLengthMS;
-            }
-
-
-
-            startCountdown();
-
+           if(timer == null){
+               intializeSession();
+           }
 
         }
         public void onServiceDisconnected(ComponentName arg0) {
@@ -131,6 +104,7 @@ public class InSession extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_insession);
         getActionBar().show();
+        getActionBar().setTitle("Session In Progress..");
 
         // get the latest session data
         session = new LoginManager(getApplicationContext());
@@ -171,7 +145,7 @@ public class InSession extends Activity {
     @Override
     public void onStart() {
         super.onStart();
-
+        Log.v("In session", "Started");
         session = new LoginManager(getApplicationContext());
         currentUser = session.getCurrentUser();
         createService();
@@ -189,6 +163,7 @@ public class InSession extends Activity {
     @Override
     protected void onStop(){
         super.onStop();
+        Log.v("In session", "Stopped");
         // Unbind from the service
         if (mBound) {
             unbindService(mConnection);
@@ -209,6 +184,53 @@ public class InSession extends Activity {
         bindService(new Intent(this, DBService.class), mConnection, Context.BIND_AUTO_CREATE);
         Log.v("Service Bound", "Results bound to new service");
     }
+
+
+    private void intializeSession(){
+        otherUser = mService.getGrappledUser();
+        currentUser = session.getCurrentUser();
+
+        otherUsername = (TextView) findViewById(R.id.other_username);
+        currentUsername = (TextView) findViewById(R.id.current_username);
+
+        otherUsername.setText(otherUser.firstName());
+        currentUsername.setText(currentUser.firstName());
+
+
+
+        // find whos the tutor
+        tutor =  (otherUser.isTutor()) ?  otherUser : currentUser;
+        sessionLength = tutor.sessionLength();
+        // get the session time in hours and minutes
+        int hr = sessionLength/60;
+        int min =sessionLength%60;
+        String hrStr = (hr > 1) ? " hours" : " hour"; // deals with pluralization
+
+
+
+        // display time accordingly
+        if(hr > 0 && min > 0){
+             arcProgress.setBottomText(hr + hrStr + min + " min" );
+        }else if(hr > 0){
+            arcProgress.setBottomText(hr + hrStr );
+        }else{
+            arcProgress.setBottomText(min + " min" );
+        }
+
+
+        // convert to long in ms
+        sessionLengthMS = MS_IN_MIN * (long) sessionLength;
+
+        // set our session remaining to tutors availability time (in ms)
+        if (sessionLengthMS > sessionRemaining) {
+            sessionRemaining = sessionLengthMS;
+        }
+
+
+
+        startCountdown();
+    }
+
 
     private void startCountdown(){
 //        mService.sessionStarted(sessionLengthMS);

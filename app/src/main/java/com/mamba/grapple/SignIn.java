@@ -103,7 +103,7 @@ public class SignIn extends FragmentActivity{
         mTabHost = (TabHost) findViewById(R.id.tabHost2);
         mTabHost.setup();
 
-        TabHost.TabSpec ts = mTabHost.newTabSpec("student");
+        TabHost.TabSpec ts = mTabHost.newTabSpec("login");
         ts.setContent(R.id.login_view);
         ts.setIndicator("Login");
 
@@ -162,6 +162,9 @@ public class SignIn extends FragmentActivity{
             mService.connectSocket();
             mBound = true;
             mLastLocation = mService.getLocation();
+            Log.v("Sign In", "Service Connected.");
+
+            returnToCaller();
         }
 
         public void onServiceDisconnected(ComponentName arg0) {
@@ -173,6 +176,17 @@ public class SignIn extends FragmentActivity{
     public void login(String token, String user){
         session.login(token, user);
         createService();
+    }
+
+
+    public void returnToCaller(){
+        // make sure the parent activity acknowledges the authorized session
+        Intent authReturn = new Intent();
+        authReturn.putExtra("token", session.getToken());
+        setResult(Activity.RESULT_OK, authReturn);
+        // return to results activity
+        finish();
+
     }
 
 

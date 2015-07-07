@@ -362,17 +362,17 @@ public class Register extends Fragment implements LoaderManager.LoaderCallbacks<
                     Log.v("Extracted User", user);
 
                     // store token and log the user in
-                    ((SignIn)getActivity()).session.login(token, user);
+                    ((SignIn)getActivity()).login(token, user);
 
                 } catch (JSONException e) {
 
                 }
-                // make sure the parent activity acknowledges the authorized session
-                Intent authReturn = new Intent();
-                getActivity().setResult(Activity.RESULT_OK, authReturn);
-
-                // return to results activity
-                getActivity().finish();
+//                // make sure the parent activity acknowledges the authorized session
+//                Intent authReturn = new Intent();
+//                getActivity().setResult(Activity.RESULT_OK, authReturn);
+//
+//                // return to results activity
+//                getActivity().finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();

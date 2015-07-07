@@ -95,6 +95,7 @@ public class Main extends FragmentActivity {
         }
     };
 
+
     // receiver intended for multicasts
     private BroadcastReceiver multicastReceiver = new BroadcastReceiver(){
         @Override
@@ -112,6 +113,19 @@ public class Main extends FragmentActivity {
         }
     };
 
+    private ServiceConnection mConnection = new ServiceConnection(){
+        public void onServiceConnected(ComponentName className, IBinder service){
+            DBService.LocalBinder binder = (DBService.LocalBinder) service;
+            mService = binder.getService();
+            mService.setSession(session);
+            mBound = true;
+
+        }
+
+        public void onServiceDisconnected(ComponentName arg0){
+            mBound = false;
+        }
+    };
 
 
     public void onCreate(Bundle savedInstanceState){
@@ -247,20 +261,6 @@ public class Main extends FragmentActivity {
         Log.v("Service Bound", "Results bound to new service");
     }
 
-    private ServiceConnection mConnection = new ServiceConnection(){
-        public void onServiceConnected(ComponentName className, IBinder service){
-            DBService.LocalBinder binder = (DBService.LocalBinder) service;
-            mService = binder.getService();
-            mService.setSession(session);
-            mBound = true;
-
-        }
-
-        public void onServiceDisconnected(ComponentName arg0){
-            mBound = false;
-        }
-    };
-
     @Override
     protected void attachBaseContext(Context newBase) {
         super.attachBaseContext(CalligraphyContextWrapper.wrap(newBase));
@@ -291,10 +291,14 @@ public class Main extends FragmentActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         switch (item.getItemId()) {
             case R.id.action_settings:
-                //TODO
+                //TODO: Redirect to account page
+                Intent accountIntent = new Intent(Main.this, Account.class);
+                startActivity(accountIntent);
+                return true;
             case R.id.action_signout:
                 Intent logoffIntent = new Intent(Main.this, SignIn.class);
                 session.logout();
+                mService.endConnection();
                 startActivityForResult(logoffIntent, 1);
                 return true;
             case R.id.action_signin:

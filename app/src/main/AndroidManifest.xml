@@ -14,7 +14,7 @@
     <!-- To check if a network connection exists -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- To access Google+ APIs: -->
+    <!-- To access Google+Amazon APIs: -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!--
  To retrieve OAuth 2.0 tokens or invalidate tokens to disconnect a user. This disconnect
@@ -41,9 +41,16 @@
         android:glEsVersion="0x00020000"
         android:required="true" />
 
-     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-   android:maxSdkVersion="18" />
+    android:maxSdkVersion="18" />
+
+    <!-- camera permissions  -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" />
+    <uses-feature android:name="android.hardware.camera.autofocus" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
 
     <application
         android:name=".App"

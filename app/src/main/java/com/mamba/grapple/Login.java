@@ -292,13 +292,13 @@ public class Login extends Fragment {
                 } catch (JSONException e) {
 
                 }
-                // make sure the parent activity acknowledges the authorized session
-                Intent authReturn = new Intent();
-                authReturn.putExtra("token", token);
-                getActivity().setResult(Activity.RESULT_OK, authReturn);
-
-                // return to results activity
-                getActivity().finish();
+//                // make sure the parent activity acknowledges the authorized session
+//                Intent authReturn = new Intent();
+//                authReturn.putExtra("token", token);
+//                getActivity().setResult(Activity.RESULT_OK, authReturn);
+//
+//                // return to results activity
+//                getActivity().finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();

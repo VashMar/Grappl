@@ -217,7 +217,7 @@ public class Broadcast extends Fragment {
             }
         });
 
-        Log.v("Is tutor", currentUser.isTutor()+"");
+
 
         if(currentUser != null && session.getFutureBroadcast()){
             selectedLocations = currentUser.getMeetingSpots();
@@ -764,7 +764,7 @@ public class Broadcast extends Fragment {
     }
 
     public void insertPriceText(){
-        priceText.setText(priceString + "  an hour");
+        priceText.setText("$" + priceString + "  an hour");
         hrRate = Double.parseDouble(priceString);
         Log.v("Hour Rate", hrRate + "");
     }

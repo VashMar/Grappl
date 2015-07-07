@@ -23,6 +23,7 @@
 
 
         <TextView
+            android:id="@+id/current_username"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Student"
@@ -43,6 +44,7 @@
         />
 
         <TextView
+            android:id="@+id/other_username"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Tutor"
@@ -78,7 +80,7 @@
         android:layout_width="285dp"
         android:layout_height="285dp"
         custom:arc_progress="0"
-        custom:arc_bottom_text="Session: 1 hour"
+        custom:arc_bottom_text="1 hour"
         custom:arc_unfinished_color="@color/theme"
         custom:arc_finished_color="@color/accent_blue"
         custom:arc_bottom_text_size="18dp"

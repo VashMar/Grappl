@@ -16,7 +16,7 @@
     <string name="title_activity_tutor">Tutor</string>
     <string name="title_activity_meetup">Meetup</string>
     <string name="title_activity_presession">PreSession</string>
-    <string name="title_activity_insession">InSession</string>
+    <string name="title_activity_insession">Session in Progress..</string>
     <string name="title_activity_chat">Chat</string>
 
 

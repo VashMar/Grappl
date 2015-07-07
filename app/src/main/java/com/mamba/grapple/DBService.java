@@ -5,6 +5,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.location.Location;
 
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -12,9 +13,13 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 // *socket.io imports*
+import com.amazonaws.auth.CognitoCachingCredentialsProvider;
+import com.amazonaws.regions.Regions;
 import com.github.nkzawa.emitter.Emitter;
+import com.github.nkzawa.socketio.client.Manager;
 import com.github.nkzawa.socketio.client.Socket;
 import com.github.nkzawa.socketio.client.IO;
+import com.github.nkzawa.socketio.client.Url;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -77,6 +82,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             Log.v("Google Play Services", "Connected");
         }
 
+
         createLocationRequest();
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(LocationServices.API)
@@ -85,6 +91,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 .build();
 
         conversation = new ArrayList<MessageObject>();
+
 
 
     }
@@ -97,13 +104,20 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     }
 
     public void connectSocket(){
+        Log.v("Service", "Connecting Socket..");
+
         // set up socket connection
         if (socket == null || !socket.connected()){
             try {
                 String url = "http://protected-dawn-4244.herokuapp.com" + "?token=" + session.getToken();
                 Log.v("socket url", url);
-                socket = IO.socket(url);
+                IO.Options options = new IO.Options();
+                if(socket == null){
+                    options.forceNew = true;
+                }
 
+
+                socket = IO.socket(url, options);
                 // create listeners
                 socket.on("message", message);
                 socket.on("locationUpdate", locationUpdate);
@@ -128,6 +142,13 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
 
 
+    }
+
+    public void endConnection(){
+        Log.v("Service", "Ending Connection..");
+        currentUser = null;
+        socket.disconnect();
+        socket = null;
     }
 
 
@@ -530,8 +551,10 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     private Emitter.Listener reconnect = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            Log.v("Socket Disconnected", "Reconnecting..");
-            socket.connect();
+            if(currentUser != null){
+                Log.v("Socket Disconnected", "Reconnecting..");
+                socket.connect();
+            }
         }
     };
 
