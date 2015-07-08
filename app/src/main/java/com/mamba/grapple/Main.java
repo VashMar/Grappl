@@ -232,7 +232,7 @@ public class Main extends FragmentActivity {
     }
 
     protected void onStop(){
-        super.onStart();
+        super.onStop();
         // Unbind from the service
         if (mBound){
             Log.v("Unbinding Service", "Search Activity");

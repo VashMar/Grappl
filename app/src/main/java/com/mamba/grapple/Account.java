@@ -63,6 +63,9 @@ public class Account extends Activity {
     private Uri picUri;
 
 
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -96,9 +99,9 @@ public class Account extends Activity {
 
     }
 
-    public void onResume() {
-        super.onResume();
-        if (session.isLoggedIn()) {
+    public void onStart() {
+        super.onStart();
+        if (session.isLoggedIn()){
             createService();
         }
     }
@@ -160,6 +163,9 @@ public class Account extends Activity {
             cropIntent.putExtra("outputY", 300);
             // retrieve data on return
             cropIntent.putExtra("return-data", true);
+
+            File f = new File(android.os.Environment.getExternalStorageDirectory(), "temp_CROP.jpg");
+            cropIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(f));
             // start the activity - we handle returning in onActivityResult
             startActivityForResult(cropIntent, 3);
         }
@@ -242,15 +248,19 @@ public class Account extends Activity {
 //                profilePic.setImageBitmap(thumbnail);
 
             } else if (requestCode == 3){
+                final File cropFile = new File(Environment.getExternalStorageDirectory()+File.separator + "temp_CROP.jpg");
                 //Upload to s3
                 Thread thread = new Thread(new Runnable(){
                     @Override
                     public void run(){
-                        Upload upload = transferManager.upload("grappl", "profilePic-" + currentUser.getId(), new File(picUri.getPath()));
+                        String ref = "profilePic-" + currentUser.getId();
+                        Upload upload = transferManager.upload("grappl", ref, cropFile);
                         while(!upload.isDone()){
                             TransferProgress transferred = upload.getProgress();
                             Log.v("Percent Uploaded", transferred.getPercentTransferred()+"");
                         }
+
+                        mService.updateProfilePic(ref);
                     }
                 });
                 thread.start();

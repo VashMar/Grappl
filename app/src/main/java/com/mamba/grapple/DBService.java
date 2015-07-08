@@ -126,6 +126,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 socket.on("grapple", grapple);
                 socket.on("removeAvailableDone", removeAvailableDone);
                 socket.on("sessionUpdated", sessionUpdated);
+                socket.on("updatedPic", updatedPic);
                 socket.on("grapplFail", grapplFail);
                 socket.on("grapplSuccess", grapplSuccess);
                 socket.on("grapplEnded", grapplEnded);
@@ -434,6 +435,15 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     }
 
+    public void updateProfilePic(String ref){
+        JSONObject data = new JSONObject();
+        try{
+            data.put("ref", ref);
+            socket.emit("updateProfilePic", data);
+        }catch (JSONException e){
+            e.printStackTrace();
+        }
+    }
 
 
 
@@ -573,6 +583,24 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
     };
 
+
+
+    private Emitter.Listener updatedPic = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            JSONObject data = (JSONObject) args[0];
+            // parse data and broadcast
+            // LocationObject location = gson.fromJson();
+
+            try{
+                String profilePic = data.getString("profilePic");
+                Log.v("Updated Prof Pic", profilePic);
+            }catch (JSONException e){
+                e.printStackTrace();
+            }
+
+        }
+    };
 
     private Emitter.Listener sessionUpdated = new Emitter.Listener() {
         @Override
