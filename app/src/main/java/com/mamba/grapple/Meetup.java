@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationManager;
@@ -63,13 +64,20 @@ import java.util.List;
 
 public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
+    // google variables
     private MapFragment mapFragment;
     private GoogleMap gMap;
-
-
     private GoogleApiClient mGoogleApiClient;
     private Location mLastLocation;
+    private LocationObject meetingPoint;
+    Marker meetMarker;
+    GoogleMap.InfoWindowAdapter iwadapter;
 
+    // management class objects
+    LoginManager session;
+    PicManager picManager;
+
+    //both user objects
     private UserObject otherUser;
     private UserObject currentUser;
 
@@ -77,16 +85,11 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     private boolean mBound = false;
     DBService mService;
 
-    private LocationObject meetingPoint;
-
-    Marker meetMarker;
-
-    GoogleMap.InfoWindowAdapter iwadapter;
-
-    LoginManager session;
-
+    // meeting spot structure and object
     ArrayList<LocationObject> meetingSpots;
     LocationObject meetingSpot;
+
+    // UI Elements
     String selectedSpot;
     Button grappleButton;
     ImageButton chatButton;
@@ -201,11 +204,11 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
         Log.v("Creating..", "Meetup View");
         setContentView(R.layout.activity_tutorselect);
 
+        picManager = new PicManager(getApplicationContext());
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
 
         grappleButton = (Button) findViewById(R.id.grappleButton);
         grappleButton.setEnabled(false);
-
 
         // get the other user data
         retrieveInfo();
@@ -354,9 +357,12 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
             // get + set name and rating from both perspectives
             TextView othersName = (TextView) findViewById(R.id.tutorName);
             RatingBar othersRating = (RatingBar) findViewById(R.id.ratingBar);
-
+            ImageView othersPic = (ImageView) findViewById(R.id.imageView);
             othersName.setText(otherUser.getName());
 
+            if(otherUser.hasProfilePic()){
+                othersPic.setImageBitmap(picManager.getImage(otherUser.getPicKey()));
+            }
 
             if(otherUser.isTutor()){
                 Log.v("Other User", "Is a tutor");

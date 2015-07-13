@@ -198,20 +198,20 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
         }
 
 
-            // log the current coordinates
-            Log.v("currentLocation", "(" + currLat + "," + currLong + ")");
+        // log the current coordinates
+        Log.v("currentLocation", "(" + currLat + "," + currLong + ")");
 
 
-            //  send the data in a http request
-            ConnectivityManager conMgr = (ConnectivityManager)
-                getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-            NetworkInfo networkInfo = conMgr.getActiveNetworkInfo();
-            // if there is a network connection create a request thread
-            if(networkInfo != null && networkInfo.isConnected()){
-               new TutorRetrieval().execute(TUTOR_PATH);
-            }else{
-                Log.v("no connection", "Failed to connect to internet");
-            }
+        //  send the data in a http request
+        ConnectivityManager conMgr = (ConnectivityManager)
+            getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = conMgr.getActiveNetworkInfo();
+        // if there is a network connection create a request thread
+        if(networkInfo != null && networkInfo.isConnected()){
+           new TutorRetrieval().execute(TUTOR_PATH);
+        }else{
+            Log.v("no connection", "Failed to connect to internet");
+        }
 
 
 

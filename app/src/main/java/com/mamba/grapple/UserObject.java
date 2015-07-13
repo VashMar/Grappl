@@ -24,7 +24,7 @@ public class UserObject implements Parcelable {
     private double studentRating;
     private int tutorSessionCount;
     private int studentSessionCount;
-    private String profilePic;
+    private String profilePic = "";
     private float distance;
     private boolean tutoring = false;
     private LocationObject location;
@@ -189,13 +189,24 @@ public class UserObject implements Parcelable {
     public long getSessionStart(){ return this.session.startTime; }
 
     public boolean hasProfilePic(){
-        if(!this.profilePic.isEmpty() && this.profilePic != null){
+        if(this.profilePic != null && !this.profilePic.isEmpty()){
             return true;
         }
-
         return false;
     }
 
+    public String getProfilePic(){
+        return this.profilePic;
+    }
+
+    // returns the unique string for storing profile pic
+    public String getPicKey(){
+      return "profilePic-" + this.id;
+    }
+
+    public void setProfilePic(String profilePic){
+        this.profilePic = profilePic;
+    }
 
    /************************************  Helpers   ***************************************************************************/
 

@@ -595,6 +595,11 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             try{
                 String profilePic = data.getString("profilePic");
                 Log.v("Updated Prof Pic", profilePic);
+                Intent intent = new Intent("multicastReceiver");
+                intent.putExtra("responseType", "updatedPic");
+                intent.putExtra("profilePic", profilePic);
+                clientBroadcast(intent);
+
             }catch (JSONException e){
                 e.printStackTrace();
             }

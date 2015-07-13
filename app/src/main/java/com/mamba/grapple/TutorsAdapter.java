@@ -13,6 +13,11 @@ import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
+import com.nostra13.universalimageloader.utils.MemoryCacheUtils;
+import com.squareup.picasso.Picasso;
+
 import java.io.InputStream;
 import java.net.URL;
 import java.text.DecimalFormat;
@@ -25,15 +30,18 @@ import java.util.Calendar;
 public class TutorsAdapter extends ArrayAdapter<UserObject> {
 
     private Location userLocation;
+    ImageLoader imageLoader;
 
 
 
     public TutorsAdapter(Context context, ArrayList<UserObject> tutors) {
         super(context, 0, tutors);
+//        imageLoader = ImageLoader.getInstance(); // Get singleton instance
 
     }
 
     public View getView(int position, View convertView, ViewGroup parent){
+
 
         // get the data item for this position
         UserObject tutor = getItem(position);
@@ -57,6 +65,11 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         tutorName.setText(tutor.getName());
         tutorPrice.setText("$" +  String.format("%.2f", tutor.getPrice()));
         tutorRating.setRating((float)tutor.getTutorRating());
+
+
+        if(tutor.hasProfilePic()){
+            Picasso.with(getContext()).load(tutor.getProfilePic()).into(tutorPic);
+        }
 
 
         // get the time data for the current time
@@ -149,16 +162,16 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
     }
 
 
-    // use to add in profile picture
-    public static Drawable LoadImageFromWebOperations(String url){
-        try {
-            InputStream is = (InputStream) new URL(url).getContent();
-            Drawable d = Drawable.createFromStream(is, "");
-            return d;
-        } catch (Exception e) {
-            return null;
-        }
-    }
+//    // use to add in profile picture
+//    public static Drawable LoadImageFromWebOperations(String url){
+//        try {
+//            InputStream is = (InputStream) new URL(url).getContent();
+//            Drawable d = Drawable.createFromStream(is, "");
+//            return d;
+//        } catch (Exception e) {
+//            return null;
+//        }
+//    }
 
 
     public void setUserLocation(Location userLocation){

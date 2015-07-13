@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.Location;
+import android.media.Image;
 import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
@@ -20,6 +21,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.github.lzyzsd.circleprogress.ArcProgress;
@@ -38,6 +40,9 @@ public class InSession extends Activity {
     TextView currentUsername;
     TextView otherUsername;
 
+    ImageView currentUserPic;
+    ImageView otherUserPic;
+
     UserObject otherUser;
     UserObject currentUser;
     UserObject tutor;
@@ -48,6 +53,8 @@ public class InSession extends Activity {
     private long sessionLengthMS;
     int sessionLength; // length of entire session
 
+    // management objects
+    PicManager picManager;
     LoginManager session;
 
 
@@ -105,6 +112,8 @@ public class InSession extends Activity {
         setContentView(R.layout.activity_insession);
         getActionBar().show();
         getActionBar().setTitle("Session In Progress..");
+
+        picManager = new PicManager(getApplicationContext());
 
         // get the latest session data
         session = new LoginManager(getApplicationContext());
@@ -190,17 +199,27 @@ public class InSession extends Activity {
         otherUser = mService.getGrappledUser();
         currentUser = session.getCurrentUser();
 
+        otherUserPic = (ImageView) findViewById(R.id.other_pic);
+        currentUserPic = (ImageView) findViewById(R.id.current_pic);
         otherUsername = (TextView) findViewById(R.id.other_username);
         currentUsername = (TextView) findViewById(R.id.current_username);
+
+        if(otherUser.hasProfilePic()){
+            otherUserPic.setImageBitmap(picManager.getImage(otherUser.getPicKey()));
+        }
+
+        if(currentUser.hasProfilePic()){
+            currentUserPic.setImageBitmap(picManager.getImage(currentUser.getPicKey()));
+        }
 
         otherUsername.setText(otherUser.firstName());
         currentUsername.setText(currentUser.firstName());
 
 
-
-        // find whos the tutor
+        // find out who the tutor is
         tutor =  (otherUser.isTutor()) ?  otherUser : currentUser;
         sessionLength = tutor.sessionLength();
+
         // get the session time in hours and minutes
         int hr = sessionLength/60;
         int min =sessionLength%60;

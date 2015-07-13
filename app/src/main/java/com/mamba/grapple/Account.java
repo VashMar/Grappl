@@ -3,20 +3,24 @@ package com.mamba.grapple;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.IBinder;
 import android.provider.MediaStore;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -33,12 +37,15 @@ import com.amazonaws.mobileconnectors.s3.transfermanager.TransferProgress;
 import com.amazonaws.mobileconnectors.s3.transfermanager.Upload;
 import com.amazonaws.regions.Regions;
 import com.google.android.gms.maps.MapFragment;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+
 import java.lang.reflect.AccessibleObject;
 
 
@@ -51,6 +58,7 @@ public class Account extends Activity {
 
     LoginManager session;
     UserObject currentUser;
+    PicManager picManager;
 
     private Location mLastLocation;
 
@@ -61,6 +69,49 @@ public class Account extends Activity {
     Button selectPhoto;
     ImageView profilePic;
     private Uri picUri;
+    private Target mTarget = new Target() {
+        @Override
+        public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+            Log.v("Picasso", "Loaded Bitmap");
+            picManager.storeImage(bitmap, currentUser.getPicKey());
+
+        }
+
+        @Override
+        public void onBitmapFailed(Drawable errorDrawable) {
+            Log.v("Picasso", "Bitmap Failed");
+
+        }
+
+        @Override
+        public void onPrepareLoad(Drawable placeHolderDrawable) {
+            Log.v("Picasso", "Bitmap Loading..");
+        }
+    };
+
+
+    // receiver intended for multicasts
+    private BroadcastReceiver multicastReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context context, Intent intent){
+            // intent can contain any data
+            Bundle extras = intent.getExtras();
+
+            if(extras != null){
+                String responseType = extras.getString("responseType");
+                Log.v("responseType", responseType);
+                Log.v("Main Activity", "received multicast: " + responseType);
+
+                if (responseType.equals("updatedPic")){
+                    currentUser.setProfilePic(extras.getString("profilePic"));
+                    updateUserSession();
+                    Log.v("Profile Pic Updated", currentUser.getProfilePic());
+                    Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(mTarget);
+                }
+            }
+
+        }
+    };
 
 
 
@@ -73,9 +124,15 @@ public class Account extends Activity {
 
         session = new LoginManager(getApplicationContext());
         currentUser = session.getCurrentUser();
+        picManager = new PicManager((getApplicationContext()));
 
         selectPhoto = (Button) findViewById(R.id.btnSelectPhoto);
         profilePic = (ImageView) findViewById(R.id.profilePic);
+
+        if(currentUser.hasProfilePic()){
+            profilePic.setImageBitmap(picManager.getImage(currentUser.getPicKey()));
+        }
+
 
         selectPhoto.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -83,7 +140,6 @@ public class Account extends Activity {
                 selectImage();
             }
         });
-
 
         // Initialize the Amazon Cognito credentials provider
         credentialsProvider = new CognitoCachingCredentialsProvider(
@@ -104,6 +160,11 @@ public class Account extends Activity {
         if (session.isLoggedIn()){
             createService();
         }
+
+        // register global broadcast receiver
+        LocalBroadcastManager.getInstance(this).registerReceiver(multicastReceiver,
+                new IntentFilter("multicastReceiver"));
+
     }
 
     @Override
@@ -114,6 +175,8 @@ public class Account extends Activity {
             unbindService(mConnection);
             mBound = false;
         }
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(multicastReceiver);
     }
 
 
@@ -193,62 +256,13 @@ public class Account extends Activity {
                 picUri = Uri.fromFile(file);
                 performCrop();
 
-
-//                File f = new File(Environment.getExternalStorageDirectory().toString());
-//                for (File temp : f.listFiles()) {
-//                    if (temp.getName().equals("temp.jpg")) {
-//                        f = temp;
-//                        break;
-//                    }
-//                }
-//                try {
-//                    Bitmap bitmap;
-//                    BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
-//                    bitmap = BitmapFactory.decodeFile(f.getAbsolutePath(),
-//
-//                            bitmapOptions);
-//
-//                    profilePic.setImageBitmap(bitmap);
-//                    String path = android.os.Environment
-//                            .getExternalStorageDirectory()
-//                            + File.separator
-//                            + "Phoenix" + File.separator + "default";
-//
-//                    f.delete();
-//                    OutputStream outFile = null;
-//                    File file = new File(path, String.valueOf(System.currentTimeMillis()) + ".jpg");
-//                    try {
-//                        outFile = new FileOutputStream(file);
-//                        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outFile);
-//                        outFile.flush();
-//                        outFile.close();
-//                    } catch (FileNotFoundException e) {
-//                        e.printStackTrace();
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//
-//                }
                 // handle photo from gallery
             } else if (requestCode == 2) {
                   picUri = data.getData();
                   performCrop();
-//                String[] filePath = { MediaStore.Images.Media.DATA };
-//                Cursor c = getContentResolver().query(selectedImage,filePath, null, null, null);
-//                c.moveToFirst();
-//                int columnIndex = c.getColumnIndex(filePath[0]);
-//                String picturePath = c.getString(columnIndex);
-//                c.close();
-//                Bitmap thumbnail = (BitmapFactory.decodeFile(picturePath));
-//                Log.w("Image Path", picturePath+"");
-//                profilePic.setImageBitmap(thumbnail);
-
             } else if (requestCode == 3){
                 final File cropFile = new File(Environment.getExternalStorageDirectory()+File.separator + "temp_CROP.jpg");
+
                 //Upload to s3
                 Thread thread = new Thread(new Runnable(){
                     @Override
@@ -261,6 +275,8 @@ public class Account extends Activity {
                         }
 
                         mService.updateProfilePic(ref);
+
+
                     }
                 });
                 thread.start();
@@ -330,4 +346,9 @@ public class Account extends Activity {
             mBound = false;
         }
     };
+
+    public void updateUserSession(){
+        session.saveUser(currentUser);
+        mService.setSession(session);
+    }
 }

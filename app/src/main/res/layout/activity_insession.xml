@@ -11,10 +11,10 @@
 
 
         <ImageView
+            android:id="@+id/current_pic"
             android:layout_width="60dp"
             android:layout_height="60dp"
             android:background="#000000"
-            android:id="@+id/imageView"
             android:src="@drawable/user_icon_med"
             android:layout_gravity="left"
             android:layout_alignParentTop="true"
@@ -33,10 +33,10 @@
             android:layout_toEndOf="@+id/imageView" />
 
         <ImageView
+            android:id="@+id/other_pic"
             android:layout_width="60dp"
             android:layout_height="60dp"
             android:background="#000000"
-            android:id="@+id/imageView2"
             android:src="@drawable/user_icon_med"
             android:layout_alignParentTop="true"
             android:layout_alignParentRight="true"

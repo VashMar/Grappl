@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.LocationManager;
 import android.os.Bundle;
@@ -26,6 +27,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TabHost;
+
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -80,8 +84,7 @@ public class Main extends FragmentActivity {
                     TutorSession updatedSession = extras.getParcelable("session");
                     currentUser.setSession(updatedSession);
                     currentUser.setTutor();
-                    session.saveUser(currentUser);
-                    mService.setSession(session);
+                    updateUserSession();
                     rightNow = Calendar.getInstance();
                     if(currentUser.getSessionStart() <= rightNow.getTimeInMillis()){
                         Log.v("Starting Broadcast", "Waiting..");
@@ -108,6 +111,11 @@ public class Main extends FragmentActivity {
                 Log.v("responseType", responseType);
                 Log.v("Main Activity", "received multicast: " + responseType);
 
+                if (responseType.equals("updatedPic")) {
+                    currentUser.setProfilePic(extras.getString("profilePic"));
+                    updateUserSession();
+                    Log.v("Profile Pic Updated", currentUser.getProfilePic());
+                }
             }
 
         }
@@ -240,6 +248,7 @@ public class Main extends FragmentActivity {
             mBound = false;
         }
 
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mainReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(multicastReceiver);
     }
 
@@ -291,9 +300,7 @@ public class Main extends FragmentActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         switch (item.getItemId()) {
             case R.id.action_settings:
-                //TODO: Redirect to account page
-                Intent accountIntent = new Intent(Main.this, Account.class);
-                startActivity(accountIntent);
+                startActivity(new Intent(Main.this, Account.class));
                 return true;
             case R.id.action_signout:
                 Intent logoffIntent = new Intent(Main.this, SignIn.class);
@@ -316,6 +323,11 @@ public class Main extends FragmentActivity {
 
     public void setSpinner(ProgressBar spin){
         spinner = spin;
+    }
+
+    public void updateUserSession(){
+        session.saveUser(currentUser);
+        mService.setSession(session);
     }
 
 }

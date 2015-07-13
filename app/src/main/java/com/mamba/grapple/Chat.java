@@ -9,7 +9,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
@@ -53,7 +55,7 @@ public class Chat extends Activity {
     View selected;
 //    ImageButton locationList;
 
-
+    PicManager picManager;
     LoginManager session;
 
 
@@ -70,14 +72,21 @@ public class Chat extends Activity {
             mService.connectSocket();
             otherUser = mService.grappledUser;
             getActionBar().setTitle(otherUser.getName());
-            getActionBar().setIcon(R.drawable.user_icon);
+
+            if(otherUser.hasProfilePic()){
+                Resources res = getResources();
+                BitmapDrawable icon = new BitmapDrawable(res, picManager.getImage(otherUser.getPicKey()));
+                getActionBar().setIcon(icon);
+            } else{
+                getActionBar().setIcon(R.drawable.user_icon);
+            }
+
 
 
             messageList = mService.retrieveConvo();
             adapter = new MessagesAdapter(Chat.this,messageList);
             messagesContainer.setAdapter(adapter);
             adapter.notifyDataSetChanged();
-
 
             RelativeLayout tutorPrompt = (RelativeLayout) findViewById(R.id.tutorPrompt);
             Log.v("Is tutor", currentUser.isTutor()+"");
@@ -101,8 +110,7 @@ public class Chat extends Activity {
                     }
                 });
 
-
-                declineTutoring.setOnClickListener(new View.OnClickListener(){
+                declineTutoring.setOnClickListener(new View.OnClickListener() {
                     public void onClick(View v){
 
                     }
@@ -169,6 +177,7 @@ public class Chat extends Activity {
 
         Log.v("Chat Activity", "Created");
 
+        picManager = new PicManager(getApplicationContext());
         retrieveInfo(); // gets info about other chat member
 
         messagesContainer = (ListView) findViewById(R.id.list_view_messages);

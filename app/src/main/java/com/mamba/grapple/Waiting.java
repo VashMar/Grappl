@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
@@ -19,6 +20,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -31,6 +33,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +46,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
 
     LoginManager session;
     UserObject currentUser;
+    PicManager picManager;
 
     private Location mLastLocation;
 
@@ -54,6 +59,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     TextView tutorPrice;
     TextView tutorCourses;
     TextView tutorAvailability;
+    ImageView tutorPic;
     Button cancelButton;
 
     // list of meeting spots on map
@@ -139,10 +145,9 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         // track user session data
         session = new LoginManager(getApplicationContext());
         currentUser = session.getCurrentUser();
+        picManager = new PicManager(getApplicationContext());
 
         //set current user as tutor
-
-
         Bundle extras = getIntent().getExtras();
         if (extras != null ){
             meetingSpots = extras.getParcelableArrayList("meetingSpots");
@@ -168,8 +173,17 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         tutorPrice = (TextView) findViewById(R.id.tutorPrice);
         tutorCourses = (TextView) findViewById(R.id.tutorCourses);
         tutorAvailability = (TextView) findViewById(R.id.tutorAvailability);
+        tutorPic = (ImageView) findViewById(R.id.profilePic);
 
         //update UI elements
+
+        if(currentUser.hasProfilePic()){
+            Log.v("Profile Pic", "Loading..");
+            Bitmap img  = picManager.getImage(currentUser.getPicKey());
+            tutorPic.setImageBitmap(img);
+            //Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(tutorPic);
+        }
+
         tutorName.setText(currentUser.getName());
         tutorPrice.setText("Hourly Rate: $" + String.format("%.2f", hrRate));
         tutorCourses.setText("Courses: " + courseString);

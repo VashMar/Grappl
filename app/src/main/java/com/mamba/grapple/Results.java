@@ -5,6 +5,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.os.IBinder;
 import android.os.Bundle;
@@ -13,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.ImageView;
 import android.widget.ListView;
 
 import java.util.ArrayList;
@@ -28,11 +31,10 @@ public class Results extends Activity {
     private boolean mBound = false;
     DBService mService;
 
-    private Location mLastLocation;
-
     // current user data
     LoginManager session;
     UserObject currentUser;
+    PicManager picManager;
 
     TutorsAdapter adapter;
 
@@ -42,6 +44,7 @@ public class Results extends Activity {
         setContentView(R.layout.activity_results);
 
         session = new LoginManager(getApplicationContext());
+        picManager = new PicManager(getApplicationContext());
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -61,7 +64,7 @@ public class Results extends Activity {
             listView = (ListView) findViewById(R.id.listView);
             listView.setAdapter(adapter);
 
-            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
                 public void onItemClick(AdapterView<?> parent, View view,
                                         int position, long id) {
 
@@ -76,6 +79,12 @@ public class Results extends Activity {
                     Log.v("selected tutor", String.valueOf(selectedTutor));
                     selectedTutor.setTutor();
 
+                    // store the users profile pic (temporary)
+                    ImageView profPic = (ImageView)view.findViewById(R.id.profilePic);
+                    Bitmap bitmap = ((BitmapDrawable)profPic.getDrawable()).getBitmap();
+                    picManager.storeImage(bitmap, selectedTutor.getPicKey());
+
+
                     // takes the user out of tutor mode
                     currentUser.tutorOff();
                     session.saveUser(currentUser);
@@ -83,6 +92,7 @@ public class Results extends Activity {
                     // transition to specific tutors page
                     Intent intent = new Intent(Results.this, Meetup.class);
                     intent.putExtra("otherUser", selectedTutor);
+                    intent.putExtra("userPic", bitmap);
                     startActivity(intent);
                 }
                 }
