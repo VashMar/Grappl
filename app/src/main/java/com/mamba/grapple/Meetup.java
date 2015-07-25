@@ -348,7 +348,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
         startGrapplePrompt();
     }
 
-    public void retrieveInfo() {
+    public void retrieveInfo(){
         // get the tutor data
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -945,9 +945,9 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
         @Override
         public View getInfoContents(Marker marker) {
-            ImageView profilePic = (ImageView) myContentsView.findViewById(R.id.profilePic);
-            int x = R.drawable.user_icon;
-            profilePic.setImageResource(x);
+//            ImageView profilePic = (ImageView) myContentsView.findViewById(R.id.profilePic);
+//            int x = R.drawable.user_icon;
+//            profilePic.setImageResource(x);
             return myContentsView;
         }
     }

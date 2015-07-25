@@ -1,14 +1,21 @@
 package com.mamba.grapple;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.app.TaskStackBuilder;
+import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -30,6 +37,7 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.pushbots.push.Pushbots;
 
 
 import org.json.JSONArray;
@@ -56,7 +64,8 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     private boolean inGrapple = false;  // flag goes up when user is in a grapple
     private boolean inMeetup = false;   // flag goes up when user is going to meeting point
     private  boolean inSesh = false;    // flag goes up when session has begun
-
+    private boolean inView = false;     // tracks if the app is open or not
+    private String deviceID = "";
     List<MessageObject> conversation;
     LocationRequest mLocationRequest;
     GoogleApiClient mGoogleApiClient;
@@ -135,6 +144,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 socket.on("startSession", startSession);
                 socket.on("sessionEnded", sessionEnded);
                 socket.on(Socket.EVENT_DISCONNECT, reconnect);
+//                socket.on(Socket.EVENT_CONNECT, sendDevID);
                 socket.connect();
 
             } catch (URISyntaxException e){
@@ -173,6 +183,14 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             return DBService.this;
 
         }
+    }
+
+    public void inView(){
+        inView = true;
+    }
+
+    public void outOfView(){
+        inView = false;
     }
 
 
@@ -251,7 +269,15 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     }
 
 
+    private LocationObject findMeetingSpot(String place){
+        for(int i = 0; i < currentUser.getMeetingSpots().size(); i++){
+            if(currentUser.getMeetingSpots().get(i).getName().equals(place)){
+                return currentUser.getMeetingSpots().get(i);
+            }
+        }
 
+        return null;
+    }
 
 
 
@@ -309,6 +335,15 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
     }
 
+    public void setDeviceID(String id){
+        if(!id.equals(deviceID)){
+            deviceID = id;
+            Log.v("Emitting Device ID ", deviceID);
+            socket.emit("deviceID", deviceID);
+        }
+
+    }
+
     // stops tutor from broadcasting their availability
     public void endBroadcast(){
         Log.v("Emitting..", "Remove Available");
@@ -316,7 +351,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     }
 
     // initiates the grappling of a tutor
-    public void startGrapple(UserObject user, String selectedLocation) {
+    public void startGrapple(UserObject user, String selectedLocation){
         Log.v("Service", "Setting grapple state to true");
         setGrapple(user); // set grapple state flag and track user
 
@@ -420,13 +455,13 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
 
     // broadcast used to update the user's rating
-    public void updateRating(boolean isTutor, int updatedRating){
+    public void updateRating(boolean isTutor, float starRating){
 
         JSONObject broadcastInfo = new JSONObject();
 
         try{
             broadcastInfo.put("isTutor", isTutor);
-            broadcastInfo.put("rating", updatedRating);
+            broadcastInfo.put("rating", starRating);
             Log.v("Emitting..", "Update Rating");
             socket.emit("updateRating", broadcastInfo);
         }catch (JSONException e){
@@ -557,7 +592,6 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
     };
 
-
     private Emitter.Listener reconnect = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
@@ -686,18 +720,69 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 // set grapple state and track user
                 setGrapple(grappledUser);
 
-                // emit a grapplSuccess to grappler
+                // emit a grapplSuccess to grapple
                 grapplSuccess(grappledUser.getId());
 
-                // send to the waiting receiver on grapple
-                Intent intent = new Intent("waitingReceiver");
-                intent.putExtra("responseType", "grapple");
-                intent.putExtra("user", grappledUser);
-                intent.putExtra("place",  data.getString("place"));
-                clientBroadcast(intent);
+                // if the user has the app open redirect to chat
+                if(inView){
+                    // send to the waiting receiver on grapple
+                    Intent intent = new Intent("waitingReceiver");
+                    intent.putExtra("responseType", "grapple");
+                    intent.putExtra("user", grappledUser);
+                    intent.putExtra("place", data.getString("place"));
+                    clientBroadcast(intent);
+
+                }else{ // send a notification
+                    NotificationCompat.Builder mBuilder =
+                            new NotificationCompat.Builder(DBService.this)
+                                    .setSmallIcon(R.drawable.notification_icon)
+                                    .setContentTitle("You've been Grappled")
+                                    .setContentText(grappledUser.firstName() + " has grappled you")
+                                    .setVisibility(1)
+                                    .setVibrate(new long[2])
+                                    .setPriority(Notification.PRIORITY_MAX);
+
+                            int mId = 12345;
+
+                            LocationObject meetingSpot = findMeetingSpot(data.getString("place"));
+                            // Creates an explicit intent for an Activity in your app
+                            Intent resultIntent = new Intent(DBService.this, Chat.class);
+                                    resultIntent.putExtra("responseType", "grapple");
+                                    resultIntent.putExtra("user", grappledUser);
+                                    resultIntent.putExtra("meetingSpot", meetingSpot);
+
+                            // The stack builder object will contain an artificial back stack for the
+                            // started Activity.
+                            // This ensures that navigating backward from the Activity leads out of
+                            // your application to the Home screen.
+                            TaskStackBuilder stackBuilder = TaskStackBuilder.create(DBService.this);
+                            // Adds the back stack for the Intent (but not the Intent itself)
+                            stackBuilder.addParentStack(Main.class);
+                            // Adds the Intent that starts the Activity to the top of the stack
+                            stackBuilder.addNextIntent(resultIntent);
+                            PendingIntent resultPendingIntent =
+                                    stackBuilder.getPendingIntent(
+                                            2,
+                                            PendingIntent.FLAG_UPDATE_CURRENT
+                                    );
+
+                            if(Build.VERSION.SDK_INT < 21){
+                                mBuilder.setFullScreenIntent(resultPendingIntent, true);
+                            }else{
+                                mBuilder.setContentIntent(resultPendingIntent);
+                            }
+
+
+                            NotificationManager mNotificationManager =
+                                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                            // mId allows you to update the notification later on.
+                            mNotificationManager.notify(mId, mBuilder.build());
+                }
 
                 // stop broadcasting
                 endBroadcast();
+
+
 
             }catch(JSONException e){
                 e.printStackTrace();

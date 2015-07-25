@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
@@ -33,9 +34,13 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +51,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
 
     LoginManager session;
     UserObject currentUser;
+    UserObject otherUser;
     PicManager picManager;
 
     private Location mLastLocation;
@@ -68,6 +74,9 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     private double hrRate;
     private String available = "";
 
+
+
+
     // receiver to handle server responses for this activity
     private BroadcastReceiver waitingReceiver = new BroadcastReceiver(){
 
@@ -82,12 +91,13 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 Log.v("Waiting Activity", "received response: " + responseType);
                 if(responseType == "grapple"){
                     // take them to chat view with user
-                    UserObject user = extras.getParcelable("user");
+                    otherUser = extras.getParcelable("user");
                     String place = extras.getString("place");
                     LocationObject meetingSpot = findMeetingSpot(place);
                     mService.newConvo();
+
                     Intent chatIntent = new Intent(Waiting.this, Chat.class);
-                    chatIntent.putExtra("user", user);
+                    chatIntent.putExtra("user", otherUser);
                     chatIntent.putExtra("meetingSpot", meetingSpot);
                     startActivity(chatIntent);
                     finish();
@@ -102,6 +112,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mService.setSession(session);
+            mService.inView();
             mBound = true;
             mLastLocation = mService.getLocation();
         }
@@ -149,11 +160,31 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
 
         //set current user as tutor
         Bundle extras = getIntent().getExtras();
-        if (extras != null ){
+        if (extras != null && extras.containsKey("meetingSpots") && extras.containsKey("selectedCourses") ){
+            Log.v("Waiting Activity", "Unpackaging Broadcast Data..");
             meetingSpots = extras.getParcelableArrayList("meetingSpots");
             selectedCourses = extras.getStringArrayList("selectedCourses");
             hrRate = extras.getDouble("hrRate");
-            available = extras.getString("available");
+//            available = extras.getString("available");
+
+            if(meetingSpots == null && selectedCourses == null ){
+                Log.v("Waiting Activity", "Converting String Data");
+                String mSpots = extras.getString("meetingSpots");
+                String selCourses = extras.getString("selectedCourses");
+
+                Gson gson = new Gson();
+                Type resultType = new TypeToken<ArrayList<LocationObject>>(){}.getType();
+                meetingSpots = gson.fromJson(mSpots, resultType);
+
+                resultType = new TypeToken<ArrayList<String>>(){}.getType();
+                selectedCourses = gson.fromJson(selCourses, resultType);
+
+                hrRate = Double.parseDouble(extras.getString("hrRate"));
+                Log.v("mSpots", mSpots);
+                Log.v("selCourses", selCourses);
+
+            }
+
         }
 
         getActionBar().setTitle("Waiting...");
@@ -187,7 +218,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         tutorName.setText(currentUser.getName());
         tutorPrice.setText("Hourly Rate: $" + String.format("%.2f", hrRate));
         tutorCourses.setText("Courses: " + courseString);
-        tutorAvailability.setText("Available: " + available);
+//        tutorAvailability.setText("Available: " + available);
 
 
         cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -219,6 +250,22 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         // register broadcast receiver for this activity
         LocalBroadcastManager.getInstance(this).registerReceiver(multicastReceiver,
                 new IntentFilter("multicastReceiver"));
+    }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        Log.v("Waiting", "Out of View");
+        mService.outOfView();
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        Log.v("Waiting", "In View");
+        if (mBound) {
+            mService.inView();
+        }
     }
 
     @Override

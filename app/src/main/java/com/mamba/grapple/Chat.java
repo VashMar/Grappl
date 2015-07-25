@@ -10,8 +10,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
@@ -29,6 +31,8 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 
 import java.util.List;
@@ -63,6 +67,39 @@ public class Chat extends Activity {
     private boolean mBound = false;
     DBService mService;
 
+
+    private Target mTarget = new Target() {
+        @Override
+        public void onBitmapLoaded(final Bitmap bitmap, Picasso.LoadedFrom from) {
+            Log.v("Picasso", "Loaded Bitmap");
+
+            BitmapDrawable icon = new BitmapDrawable(getResources(), bitmap);
+            getActionBar().setIcon(icon);
+
+            Thread thread = new Thread(new Runnable(){
+                @Override
+                public void run(){
+                    picManager.storeImage(bitmap, otherUser.getPicKey());
+                }
+            });
+            thread.start();
+
+
+        }
+
+        @Override
+        public void onBitmapFailed(Drawable errorDrawable) {
+            Log.v("Picasso", "Bitmap Failed");
+
+        }
+
+        @Override
+        public void onPrepareLoad(Drawable placeHolderDrawable) {
+            Log.v("Picasso", "Bitmap Loading..");
+        }
+    };
+
+
     // service connection event handler
     private ServiceConnection mConnection = new ServiceConnection(){
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -74,10 +111,20 @@ public class Chat extends Activity {
             getActionBar().setTitle(otherUser.getName());
 
             if(otherUser.hasProfilePic()){
-                Resources res = getResources();
-                BitmapDrawable icon = new BitmapDrawable(res, picManager.getImage(otherUser.getPicKey()));
-                getActionBar().setIcon(icon);
-            } else{
+                Log.v("Chat", "Other user has profile pic");
+
+                Bitmap img = picManager.getImage(otherUser.getPicKey());
+
+                // if the picture is already stored set the icon
+                if(img != null){
+                    BitmapDrawable icon = new BitmapDrawable(getResources(), img);
+                    getActionBar().setIcon(icon);
+                }else{
+                    // otherwise load it from the web and store it
+                    Picasso.with(getApplicationContext()).load(otherUser.getProfilePic()).into(mTarget);
+                }
+
+            }else{
                 getActionBar().setIcon(R.drawable.user_icon);
             }
 
@@ -90,7 +137,7 @@ public class Chat extends Activity {
 
             RelativeLayout tutorPrompt = (RelativeLayout) findViewById(R.id.tutorPrompt);
             Log.v("Is tutor", currentUser.isTutor()+"");
-            Log.v("Meetup State", mService.inMeetup()+"");
+            Log.v("Meetup State", mService.inMeetup() + "");
             if(currentUser.isTutor() && !mService.inMeetup()){
                 Log.v("Chat Activity", "Tutor entered..");
 

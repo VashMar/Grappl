@@ -28,9 +28,13 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TabHost;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.nostra13.universalimageloader.core.ImageLoader;
 import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
+import com.pushbots.push.Pushbots;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Calendar;
 
@@ -126,6 +130,7 @@ public class Main extends FragmentActivity {
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mService.setSession(session);
+            mService.setDeviceID(Pushbots.sharedInstance().regID());
             mBound = true;
 
         }
@@ -139,6 +144,7 @@ public class Main extends FragmentActivity {
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        Pushbots.sharedInstance().init(this);
         context = getApplicationContext();
         session = new LoginManager(context);
 
@@ -165,8 +171,6 @@ public class Main extends FragmentActivity {
         });
 
 //        session = new LoginManager(getApplicationContext());
-
-
 
         LocationManager lm = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
         boolean gps_enabled = false;
@@ -207,6 +211,34 @@ public class Main extends FragmentActivity {
             dialog.show();
         }
 
+        // redirect to waiting activity from push notification
+        Bundle extras = getIntent().getExtras();
+        if(extras != null && extras.containsKey("meetingSpots") && extras.containsKey("selectedCourses") ){
+
+
+
+            Intent intent = new Intent(Main.this, Waiting.class);
+            String mSpots = extras.getString("meetingSpots");
+            String selCourses = extras.getString("selectedCourses");
+
+            Log.v("mSpots", mSpots);
+            Log.v("selCourses", selCourses);
+            Gson gson = new Gson();
+
+            Type resultType = new TypeToken<ArrayList<LocationObject>>(){}.getType();
+            ArrayList<LocationObject> meetingSpots =  gson.fromJson(mSpots, resultType);
+            intent.putParcelableArrayListExtra("meetingSpots", meetingSpots);
+
+            resultType = new TypeToken<ArrayList<String>>(){}.getType();
+            ArrayList<String> selectedCourses = gson.fromJson(selCourses, resultType);
+            intent.putStringArrayListExtra("selectedCourses", selectedCourses);
+
+            Double  hrRate = Double.parseDouble(extras.getString("hrRate"));
+            intent.putExtra("hrRate", hrRate);
+          
+            startActivity(intent);
+
+        }
     }
 
 

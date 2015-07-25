@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     signingConfigs {
@@ -27,9 +28,10 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:22.0.0'
     compile 'com.github.nkzawa:socket.io-client:0.4.1'
-    compile 'com.google.android.gms:play-services:7.0.0'
-    compile 'com.google.android.gms:play-services-maps:7.0.0'
-    compile 'com.google.android.gms:play-services-location:7.0.0'
+    compile 'com.google.android.gms:play-services:7.5.0'
+    compile 'com.google.android.gms:play-services-maps:7.5.0'
+    compile 'com.google.android.gms:play-services-location:7.5.0'
+    compile 'com.google.android.gms:play-services-gcm:7.5.0'
     compile 'uk.co.chrisjenx:calligraphy:2.0.2'
     compile 'com.github.lzyzsd:circleprogress:1.1.0@aar'
     compile files('libs/javax.mail.jar')
@@ -39,4 +41,5 @@ dependencies {
     compile 'com.amazonaws:aws-android-sdk-ddb:2.+'
     compile 'com.nostra13.universalimageloader:universal-image-loader:1.9.4'
     compile 'com.squareup.picasso:picasso:2.5.2'
+    compile 'com.pushbots:pushbots-lib:2.0.13@aar'
 }

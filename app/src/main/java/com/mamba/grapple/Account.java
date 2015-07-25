@@ -268,15 +268,13 @@ public class Account extends Activity {
                     @Override
                     public void run(){
                         String ref = "profilePic-" + currentUser.getId();
-                        Upload upload = transferManager.upload("grappl", ref, cropFile);
+                        Upload upload = transferManager.upload("grappl-pics", ref, cropFile);
                         while(!upload.isDone()){
                             TransferProgress transferred = upload.getProgress();
                             Log.v("Percent Uploaded", transferred.getPercentTransferred()+"");
                         }
 
                         mService.updateProfilePic(ref);
-
-
                     }
                 });
                 thread.start();

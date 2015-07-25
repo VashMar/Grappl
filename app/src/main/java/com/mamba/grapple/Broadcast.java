@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -28,8 +29,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import org.w3c.dom.Text;
 
+import java.lang.reflect.Type;
 import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -40,15 +45,11 @@ import java.util.concurrent.TimeUnit;
 
 public class Broadcast extends Fragment {
 
-
     private OnFragmentInteractionListener mListener;
-
     private LocationsAdapter locationsAdapter;
     private List<LocationObject> locationList;
     private ArrayList<LocationObject> selectedLocations;
     private LocationObject selectedLocation;
-
-
 
     // settings view elements
     TextView timeLength;
@@ -73,14 +74,12 @@ public class Broadcast extends Fragment {
     SeekBar seekTime;
     Spinner dropdown;
 
-
     // broadcast variables
     private int availableTime;
     private double hrRate;
     private long broadcastMS;
     private ArrayList<String> selectedCourses;
     private String selectedCourse;
-
 
     //dialog variables (set to defaults)
     private String whenAvailable;
@@ -94,8 +93,6 @@ public class Broadcast extends Fragment {
     private int broadcastYear;
     private String startTime;
     private String endTime = "";
-
-
 
     // Date/Time related
     TimePicker timePicker;
@@ -119,7 +116,6 @@ public class Broadcast extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState){
 
-
         //initialize  presets
         selectedLocations = new ArrayList<LocationObject>();
         selectedCourses = new ArrayList<String>();
@@ -131,9 +127,6 @@ public class Broadcast extends Fragment {
         lengthHr = 0;
         broadcastMS = 0;
         lengthMin = availableTime;
-
-
-
 
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_broadcast, container, false);
@@ -218,13 +211,14 @@ public class Broadcast extends Fragment {
         });
 
 
-
+        // if the user has a future broadcast pending show the timer
         if(currentUser != null && session.getFutureBroadcast()){
             selectedLocations = currentUser.getMeetingSpots();
             selectedCourses = session.getSelectedCourses();
             availableString = session.getAvailString();
             availableTime = currentUser.sessionLength();
-            priceString = String.format("%.2f", currentUser.getPrice());
+            hrRate = currentUser.getPrice();
+            priceString = String.format("%.2f", hrRate);
             broadcastMS = currentUser.getSessionStart();
             setAllTextViews();
             countdownView();
@@ -641,6 +635,7 @@ public class Broadcast extends Fragment {
     public void showLocationList(Context context){
         final AlertDialog.Builder dialog = new AlertDialog.Builder(context);
 
+        Log.v("Location List Size", locationList.size() + "");
 
         dialog.setCancelable(true);
 
@@ -874,6 +869,14 @@ public class Broadcast extends Fragment {
         @Override
         public void onFinish() {
             timeView.setText("Completed.");
+            session.removeFutureBroadcast();
+            Intent intent = new Intent(getActivity(), Waiting.class);
+            intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
+            intent.putExtra("hrRate", hrRate);
+            intent.putStringArrayListExtra("selectedCourses", selectedCourses);
+            intent.putExtra("available", availableString);
+            getActivity().startActivity(intent);
+            broadcastView();
         }
 
         @Override
@@ -910,22 +913,20 @@ public class Broadcast extends Fragment {
     public void locPopulate(){
 
         locationList =  new ArrayList<LocationObject>();
-        final Context context = getActivity().getApplicationContext();
 
         Thread thread = new Thread(new Runnable(){
             @Override
             public void run(){
-                // create dummy location objects for now
-                final LocationObject loc1 = new LocationObject("College Library", "600 N Park St, Madison, WI", context);
-                final LocationObject loc2 = new LocationObject("Union South", "1308 W Dayton St, Madison, WI", context);
-                final LocationObject loc3 = new LocationObject("Chemistry Building", "1101 University Ave, Madison, WI", context);
-                final LocationObject loc4 = new LocationObject("Grainger Hall", "975 University Ave, Madison, WI", context);
 
-                locationList.add(loc1);
-                locationList.add(loc2);
-                locationList.add(loc3);
-                locationList.add(loc4);
+                SharedPreferences pref = getActivity().getSharedPreferences("locations", 0);
 
+                String locStr = pref.getString("locations", null);
+                Log.v("Locations", locStr);
+
+                Gson gson = new Gson();
+                Type resultType = new TypeToken<ArrayList<LocationObject>>(){}.getType();
+                locationList = gson.fromJson(locStr, resultType);
+                Log.v("locations list", locationList.size()+"");
 
             }
         });

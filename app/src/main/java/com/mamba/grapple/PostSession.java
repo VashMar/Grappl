@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.location.Location;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -16,11 +15,6 @@ import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
-import com.github.nkzawa.emitter.Emitter;
-import com.google.android.gms.maps.MapFragment;
-
-import org.json.JSONObject;
-
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,13 +22,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class PostSession extends Activity {
 
-    TextView rateTutor;
+    TextView rateText;
     TextView sessionLength;
     TextView hourRate;
     TextView total;
     RatingBar rating;
     Button doneButton;
-    ImageView tutorPic;
+    ImageView ratePic;
 
     long seshLength;
     long seshMin;
@@ -45,14 +39,15 @@ public class PostSession extends Activity {
     UserObject currentUser;
     UserObject tutor;
 
+
     LoginManager session;
-    private Location mLastLocation;
+    PicManager picManager;
 
     // service related variables
     private boolean mBound = false;
     DBService mService;
 
-    private ServiceConnection mConnection = new ServiceConnection() {
+    private ServiceConnection mConnection = new ServiceConnection(){
         public void onServiceConnected(ComponentName className, IBinder service) {
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
@@ -62,13 +57,19 @@ public class PostSession extends Activity {
 
             otherUser = mService.getGrappledUser();
             currentUser = session.getCurrentUser();
-            mLastLocation = mService.getLocation();
+
 
             // find whos the tutor
             tutor =  (otherUser.isTutor()) ?  otherUser : currentUser;
 
+            // other user picture
+            if(otherUser.hasProfilePic()){
+                ratePic.setImageBitmap(picManager.getImage(otherUser.getPicKey()));
+            }
+
             // other user rating prompt
-            rateTutor.setText("Rate " + otherUser.firstName());
+            rateText.setText("Rate " + otherUser.firstName());
+
 
             // show the hourly rate
             hourRate.setText("Hourly Rate: $" + String.format("%.2f", tutor.getPrice()));
@@ -80,7 +81,6 @@ public class PostSession extends Activity {
                 double totalCost  = seshHr * tutor.getPrice() + (seshMin/60) * tutor.getPrice();
                 total.setText("Total: $" + String.format("%.2f", totalCost));
             }
-
 
         }
         public void onServiceDisconnected(ComponentName arg0) {
@@ -95,20 +95,22 @@ public class PostSession extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_postsession);
 
-        rateTutor = (TextView) findViewById(R.id.rateTutor);
+        picManager = new PicManager(getApplicationContext());
+
+        rateText = (TextView) findViewById(R.id.rateTutor);
         sessionLength = (TextView) findViewById(R.id.session_length);
         hourRate = (TextView) findViewById(R.id.cost_title);
         total = (TextView) findViewById(R.id.total_cost);
         rating = (RatingBar) findViewById(R.id.ratingBar2);
         doneButton = (Button) findViewById(R.id.doneBtn);
-        tutorPic = (ImageView) findViewById(R.id.profilePic);
+        ratePic = (ImageView) findViewById(R.id.profilePic);
 
         doneButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                int numStars = rating.getNumStars();
+                float starRating = rating.getRating();
                 // send rating of other user to the server
-                mService.updateRating(otherUser.isTutor() , numStars);
+                mService.updateRating(otherUser.isTutor() , starRating);
                 currentUser.tutorOff();
                 session.saveUser(currentUser);
                 // return to search and finish
@@ -116,6 +118,8 @@ public class PostSession extends Activity {
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(intent);
+                // remove the stored data of the other users profile pic
+                picManager.deleteImage(otherUser.getPicKey());
                 finish();
             }
         });
@@ -144,10 +148,10 @@ public class PostSession extends Activity {
     }
 
     @Override
-    protected void onStop() {
+    protected void onStop(){
         super.onStop();
         // Unbind from the service
-        if (mBound) {
+        if (mBound){
             unbindService(mConnection);
             mBound = false;
         }

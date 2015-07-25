@@ -3,7 +3,7 @@
     package="com.mamba.grapple" >
 
     <uses-sdk
-        android:minSdkVersion="14"
+        android:minSdkVersion="16"
         android:targetSdkVersion="18" />
 
     <!-- To auto-complete the email text field in the login form with the user's emails. -->
@@ -16,6 +16,17 @@
 
     <!-- To access Google+Amazon APIs: -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- GCM -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+    <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+
+    <permission android:name="com.mamba.grapple.permission.C2D_MESSAGE" android:protectionLevel="signature" />
+    <uses-permission android:name="com.mamba.grapple.permission.C2D_MESSAGE" />
+
+
     <!--
  To retrieve OAuth 2.0 tokens or invalidate tokens to disconnect a user. This disconnect
      option is required to comply with the Google+ Sign-In developer policies
@@ -58,6 +69,24 @@
         android:icon="@drawable/launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
+
+
+        <receiver
+            android:name="com.pushbots.google.gcm.GCMBroadcastReceiver"
+            android:permission="com.google.android.c2dm.permission.SEND" >
+            <intent-filter>
+                <!-- Receives the actual messages. -->
+                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+                <!-- Receives the registration id. -->
+                <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+                <category android:name="com.mamba.grapple" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name="com.pushbots.push.DefaultPushHandler" />
+        <service android:name="com.pushbots.push.GCMIntentService" />
+
+        <!--<service android:name=".GcmIntentService" />-->
+
         <service android:name=".DBService" />
 
         <!-- google play services -->
@@ -125,6 +154,10 @@
         <activity
             android:name=".Main"
             android:label="@string/title_activity_main" >
+            <intent-filter>
+                <action android:name="com.mamba.grapple.MESSAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
         <activity
             android:name=".Waiting"

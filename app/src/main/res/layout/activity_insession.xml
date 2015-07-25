@@ -29,8 +29,8 @@
             android:text="Student"
             android:layout_marginLeft="10dp"
             android:layout_alignParentTop="true"
-            android:layout_toRightOf="@+id/imageView"
-            android:layout_toEndOf="@+id/imageView" />
+            android:layout_toRightOf="@+id/current_pic"
+            android:layout_toEndOf="@+id/current_pic" />
 
         <ImageView
             android:id="@+id/other_pic"
@@ -50,7 +50,7 @@
             android:text="Tutor"
             android:textColor="@color/theme"
             android:layout_marginRight="10dp"
-            android:layout_toLeftOf="@id/imageView2"
+            android:layout_toLeftOf="@id/other_pic"
         />
 
 
