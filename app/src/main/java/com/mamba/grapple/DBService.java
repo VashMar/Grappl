@@ -56,16 +56,33 @@ import java.util.List;
 public class DBService extends Service implements LocationListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
     private Socket socket;
-    private String token;
     private final IBinder myBinder = new LocalBinder();
     private final Gson gson = new Gson();
+
+
     private static final long INTERVAL = 10000 * 10;
     private static final long FASTEST_INTERVAL = 10000 * 5;
+
+    // update types
+    private static final String END_UPDATE = "ENDED_SESSION";
+    private static final String MEETUP = "MEETUP_ACCEPTED";
+    private static final String SESH_REQUEST = "SESSION_REQUEST";
+
+    //notification types
+    private static final int NOTIFICATION_GRAPPLE = 1;
+    private static final int NOTIFICATION_SESHREQUEST = 2;
+    private static final int NOTIFICATION_SESHENDED = 3;
+
+
+
+
     private boolean inGrapple = false;  // flag goes up when user is in a grapple
     private boolean inMeetup = false;   // flag goes up when user is going to meeting point
     private  boolean inSesh = false;    // flag goes up when session has begun
     private boolean inView = false;     // tracks if the app is open or not
     private String deviceID = "";
+    private long seshTime;
+    List<String> updates;
     List<MessageObject> conversation;
     LocationRequest mLocationRequest;
     GoogleApiClient mGoogleApiClient;
@@ -77,7 +94,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     LoginManager session;
     UserObject currentUser;
     UserObject grappledUser;
-
+    LocationObject meetingPoint;
 
     /****************************************************************************** Service Related Methods  *********************************************************************/
     @Override
@@ -100,7 +117,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 .build();
 
         conversation = new ArrayList<MessageObject>();
-
+        updates = new ArrayList<String>();
 
 
     }
@@ -200,6 +217,78 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     }
 
 
+    public void sendNotification(int notifType){
+        Log.v("Out of View", "Sending Notification: " + notifType);
+        Intent resultIntent = null;
+        String notifTitle = "";
+        String notifContent = "";
+
+        switch(notifType){
+            case NOTIFICATION_GRAPPLE:
+                notifTitle = "You've been Grappled";
+                notifContent = grappledUser.firstName() + " has grappled you";
+                resultIntent = new Intent(DBService.this, Chat.class);
+                resultIntent.putExtra("NOTIFICATION_LAUNCH", true);
+//                resultIntent.putExtra("responseType", "grapple");
+//                resultIntent.putExtra("user", grappledUser);
+//                resultIntent.putExtra("meetingSpot", meetingPoint);
+                break;
+            case NOTIFICATION_SESHREQUEST:
+                notifTitle = "Session Requested";
+                notifContent = grappledUser.firstName() + " wants to start a session";
+                resultIntent = new Intent(DBService.this, Meetup.class);
+                break;
+            case NOTIFICATION_SESHENDED:
+                notifTitle = "Session Ended";
+                notifContent = grappledUser.firstName() +" has ended the session";
+                resultIntent = new Intent(DBService.this, InSession.class);
+                break;
+        }
+
+
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(DBService.this)
+                        .setSmallIcon(R.drawable.notification_icon)
+                        .setContentTitle(notifTitle)
+                        .setContentText(notifContent)
+                        .setVisibility(1)
+                        .setVibrate(new long[2])
+                        .setPriority(Notification.PRIORITY_MAX);
+
+
+        // Creates an explicit intent for an Activity in your app
+
+
+        // The stack builder object will contain an artificial back stack for the
+        // started Activity.
+        // This ensures that navigating backward from the Activity leads out of
+        // your application to the Home screen.
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(DBService.this);
+        // Adds the back stack for the Intent (but not the Intent itself)
+        stackBuilder.addParentStack(Main.class);
+        // Adds the Intent that starts the Activity to the top of the stack
+        stackBuilder.addNextIntent(resultIntent);
+        PendingIntent resultPendingIntent =
+                stackBuilder.getPendingIntent(
+                        2,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+
+        if(Build.VERSION.SDK_INT < 21){
+            mBuilder.setFullScreenIntent(resultPendingIntent, true);
+        }else{
+            mBuilder.setContentIntent(resultPendingIntent);
+        }
+
+        mBuilder.setAutoCancel(true);
+
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        // mId allows you to update the notification later on.
+        mNotificationManager.notify(notifType, mBuilder.build());
+    }
+
+
     /*********************************************************** Grappl State Management **************************************************/
 
     private void setGrapple(UserObject user)
@@ -246,16 +335,25 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         inMeetup = false;
     }
 
-
-
-    /****************************************************************************** Chat *********************************************************************/
-
-    public void storeConversation(List<MessageObject> convo){
-       conversation = convo;
+    public void setMeetingPoint(LocationObject mP){
+        meetingPoint = mP;
     }
 
+    public LocationObject getMeetingPoint(){
+        return meetingPoint;
+    }
+
+
+    /****************************************************************************** Chat & Updates *********************************************************************/
+
+    public void storeConversation(List<MessageObject> convo){
+        conversation = convo;
+    }
+
+    // starts a new conversation and resets the updates between the two connected users
     public void newConvo(){
-       conversation = new ArrayList<MessageObject>();
+        conversation = new ArrayList<MessageObject>();
+        updates = new ArrayList<String>();
     }
 
     public void addMessage(MessageObject msg){
@@ -279,6 +377,19 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         return null;
     }
 
+    public void clearUpdates(){
+        updates = new ArrayList<String>();
+    }
+
+    public List<String> getUpdates(){
+        return updates;
+    }
+
+    public long getSeshTime(){
+        return seshTime;
+    }
+
+
 
 
     /****************************************************************************** User Session Management *********************************************************************/
@@ -288,10 +399,6 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         this.session = session;
         this.currentUser = session.getCurrentUser();
     }
-
-
-
-
 
 
     /****************************************************************************** Socket Emits *********************************************************************/
@@ -415,6 +522,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             JSONObject data = new JSONObject();
             data.put("time", ms);
             socket.emit("endSession", data);
+            Log.v("Emitted", "End Session");
             resetStates();
         }catch(JSONException e){
 
@@ -550,9 +658,14 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         @Override
         public void call(final Object... args){
             Log.v("Emit Received..", "grapplEnded");
-            Intent intent = new Intent("grapplReceiver");
-            intent.putExtra("responseType", "grapplEnded");
-            clientBroadcast(intent);
+            if(inView){
+                Intent intent = new Intent("grapplReceiver");
+                intent.putExtra("responseType", "grapplEnded");
+                clientBroadcast(intent);
+            }else{
+                updates.add(END_UPDATE);
+            }
+
         }
     };
 
@@ -560,9 +673,59 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         @Override
         public void call(final Object... args){
             Log.v("Emit Received..", "sessionRequest");
-            Intent intent = new Intent("grapplReceiver");
-            intent.putExtra("responseType", "sessionRequest");
-            clientBroadcast(intent);
+            if(inView){
+                Intent intent = new Intent("grapplReceiver");
+                intent.putExtra("responseType", "sessionRequest");
+                clientBroadcast(intent);
+            }else{
+                // store update
+                updates.add(SESH_REQUEST);
+                sendNotification(NOTIFICATION_SESHREQUEST);
+//                // send a notification
+//                NotificationCompat.Builder mBuilder =
+//                        new NotificationCompat.Builder(DBService.this)
+//                                .setSmallIcon(R.drawable.notification_icon)
+//                                .setContentTitle("Session Requested")
+//                                .setContentText(grappledUser.firstName() + " wants to start a session")
+//                                .setVisibility(1)
+//                                .setVibrate(new long[2])
+//                                .setPriority(Notification.PRIORITY_MAX);
+//
+//                int mId = 2;
+//
+//                // Creates an explicit intent for an Activity in your app
+//                Intent resultIntent = new Intent(DBService.this, Meetup.class);
+//
+//                // The stack builder object will contain an artificial back stack for the
+//                // started Activity.
+//                // This ensures that navigating backward from the Activity leads out of
+//                // your application to the Home screen.
+//                TaskStackBuilder stackBuilder = TaskStackBuilder.create(DBService.this);
+//                // Adds the back stack for the Intent (but not the Intent itself)
+//                stackBuilder.addParentStack(Main.class);
+//                // Adds the Intent that starts the Activity to the top of the stack
+//                stackBuilder.addNextIntent(resultIntent);
+//                PendingIntent resultPendingIntent =
+//                        stackBuilder.getPendingIntent(
+//                                2,
+//                                PendingIntent.FLAG_UPDATE_CURRENT
+//                        );
+//
+//                if(Build.VERSION.SDK_INT < 21){
+//                    mBuilder.setFullScreenIntent(resultPendingIntent, true);
+//                }else{
+//                    mBuilder.setContentIntent(resultPendingIntent);
+//                }
+//
+//                mBuilder.setAutoCancel(true);
+//
+//                NotificationManager mNotificationManager =
+//                        (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//                // mId allows you to update the notification later on.
+//                mNotificationManager.notify(mId, mBuilder.build());
+
+            }
+
         }
     };
 
@@ -585,10 +748,14 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         @Override
         public void call(final Object... args) {
             Log.v("Emit Received..", "startMeetup");
+            setMeetup();
             Intent intent = new Intent("grapplReceiver");
             intent.putExtra("responseType", "startMeetup");
-            clientBroadcast(intent);
-            setMeetup();
+            if(inView){
+                clientBroadcast(intent);
+            }else{
+                updates.add(MEETUP);
+            }
         }
     };
 
@@ -663,7 +830,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         }
     };
 
-    private Emitter.Listener sessionEnded = new Emitter.Listener() {
+    private Emitter.Listener sessionEnded = new Emitter.Listener(){
         @Override
         public void call(final Object... args) {
             Log.v("Emit Received..", "Session Ended");
@@ -672,11 +839,18 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             try{
                 String sessionTime = data.getString("time");
                 Log.v("sessionTime", sessionTime);
-                long seshTime = Long.parseLong(sessionTime);
-                Intent intent = new Intent("seshReceiver");
-                intent.putExtra("responseType", "sessionEnded");
-                intent.putExtra("seshTime", seshTime);
-                clientBroadcast(intent);
+                seshTime = Long.parseLong(sessionTime);
+
+                if(inView){
+                    Intent intent = new Intent("seshReceiver");
+                    intent.putExtra("responseType", "sessionEnded");
+                    intent.putExtra("seshTime", seshTime);
+                    clientBroadcast(intent);
+                }else{
+                    updates.add(END_UPDATE);
+                    sendNotification(NOTIFICATION_SESHENDED);
+                }
+
 
             }catch(JSONException e){
                 e.printStackTrace();
@@ -714,7 +888,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
             try{
                 String grappledUserString = data.getString("user");
-                Log.v("Grappled", session.currentUser.getName() + " just got grappled by " + grappledUser);
+                Log.v("Grappled", session.currentUser.getName() + " just got grappled by " + grappledUserString);
                 grappledUser = gson.fromJson(grappledUserString, UserObject.class);
 
                 // set grapple state and track user
@@ -732,51 +906,55 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                     intent.putExtra("place", data.getString("place"));
                     clientBroadcast(intent);
 
-                }else{ // send a notification
-                    NotificationCompat.Builder mBuilder =
-                            new NotificationCompat.Builder(DBService.this)
-                                    .setSmallIcon(R.drawable.notification_icon)
-                                    .setContentTitle("You've been Grappled")
-                                    .setContentText(grappledUser.firstName() + " has grappled you")
-                                    .setVisibility(1)
-                                    .setVibrate(new long[2])
-                                    .setPriority(Notification.PRIORITY_MAX);
-
-                            int mId = 12345;
-
-                            LocationObject meetingSpot = findMeetingSpot(data.getString("place"));
-                            // Creates an explicit intent for an Activity in your app
-                            Intent resultIntent = new Intent(DBService.this, Chat.class);
-                                    resultIntent.putExtra("responseType", "grapple");
-                                    resultIntent.putExtra("user", grappledUser);
-                                    resultIntent.putExtra("meetingSpot", meetingSpot);
-
-                            // The stack builder object will contain an artificial back stack for the
-                            // started Activity.
-                            // This ensures that navigating backward from the Activity leads out of
-                            // your application to the Home screen.
-                            TaskStackBuilder stackBuilder = TaskStackBuilder.create(DBService.this);
-                            // Adds the back stack for the Intent (but not the Intent itself)
-                            stackBuilder.addParentStack(Main.class);
-                            // Adds the Intent that starts the Activity to the top of the stack
-                            stackBuilder.addNextIntent(resultIntent);
-                            PendingIntent resultPendingIntent =
-                                    stackBuilder.getPendingIntent(
-                                            2,
-                                            PendingIntent.FLAG_UPDATE_CURRENT
-                                    );
-
-                            if(Build.VERSION.SDK_INT < 21){
-                                mBuilder.setFullScreenIntent(resultPendingIntent, true);
-                            }else{
-                                mBuilder.setContentIntent(resultPendingIntent);
-                            }
-
-
-                            NotificationManager mNotificationManager =
-                                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-                            // mId allows you to update the notification later on.
-                            mNotificationManager.notify(mId, mBuilder.build());
+                }else{
+                    // get the meeting point and send a notification
+                    meetingPoint = findMeetingSpot(data.getString("place"));
+                    sendNotification(NOTIFICATION_GRAPPLE);
+//                    NotificationCompat.Builder mBuilder =
+//                            new NotificationCompat.Builder(DBService.this)
+//                                    .setSmallIcon(R.drawable.notification_icon)
+//                                    .setContentTitle("You've been Grappled")
+//                                    .setContentText(grappledUser.firstName() + " has grappled you")
+//                                    .setVisibility(1)
+//                                    .setVibrate(new long[2])
+//                                    .setPriority(Notification.PRIORITY_MAX);
+//
+//                            int mId = 1;
+//
+//
+//                            // Creates an explicit intent for an Activity in your app
+//                            Intent resultIntent = new Intent(DBService.this, Chat.class);
+//                                    resultIntent.putExtra("responseType", "grapple");
+//                                    resultIntent.putExtra("user", grappledUser);
+//                                    resultIntent.putExtra("meetingSpot", meetingSpot);
+//
+//                            // The stack builder object will contain an artificial back stack for the
+//                            // started Activity.
+//                            // This ensures that navigating backward from the Activity leads out of
+//                            // your application to the Home screen.
+//                            TaskStackBuilder stackBuilder = TaskStackBuilder.create(DBService.this);
+//                            // Adds the back stack for the Intent (but not the Intent itself)
+//                            stackBuilder.addParentStack(Main.class);
+//                            // Adds the Intent that starts the Activity to the top of the stack
+//                            stackBuilder.addNextIntent(resultIntent);
+//                            PendingIntent resultPendingIntent =
+//                                    stackBuilder.getPendingIntent(
+//                                            2,
+//                                            PendingIntent.FLAG_UPDATE_CURRENT
+//                                    );
+//
+//                            if(Build.VERSION.SDK_INT < 21){
+//                                mBuilder.setFullScreenIntent(resultPendingIntent, true);
+//                            }else{
+//                                mBuilder.setContentIntent(resultPendingIntent);
+//                            }
+//
+//                            mBuilder.setAutoCancel(true);
+//
+//                            NotificationManager mNotificationManager =
+//                                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//                            // mId allows you to update the notification later on.
+//                            mNotificationManager.notify(mId, mBuilder.build());
                 }
 
                 // stop broadcasting

@@ -8,6 +8,7 @@ import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
+import android.media.Image;
 import android.os.IBinder;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,6 +18,9 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.TextView;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 
@@ -25,7 +29,8 @@ public class Results extends Activity {
 
     ArrayList<UserObject> tutorList;
     ListView listView;
-
+    TextView emptyMsg;
+    ImageView sadface;
 
     // service related variables
     private boolean mBound = false;
@@ -38,6 +43,7 @@ public class Results extends Activity {
 
     TutorsAdapter adapter;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,10 +55,8 @@ public class Results extends Activity {
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
 
-            int distance = extras.getInt("distance");
-            String distString = (distance == 1) ? distance + " Mile " : distance + " Miles";
-
-            getActionBar().setTitle("Tutors Within " + distString);
+            String course = extras.getString("course");
+            getActionBar().setTitle("Tutors for " + course);
 
             // get the tutor list from previous activity
             tutorList = extras.getParcelableArrayList("tutorList");
@@ -62,6 +66,9 @@ public class Results extends Activity {
             adapter = new TutorsAdapter(this, tutorList);
 
             listView = (ListView) findViewById(R.id.listView);
+            emptyMsg = (TextView) findViewById(R.id.empty_message);
+            sadface = (ImageView) findViewById(R.id.sadface);
+
             listView.setAdapter(adapter);
 
             listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
@@ -97,6 +104,12 @@ public class Results extends Activity {
                 }
                 }
             });
+
+            // if there are no tutors display the message
+            if(tutorList.size() < 1){
+                emptyMsg.setVisibility(View.VISIBLE);
+                sadface.setVisibility(View.VISIBLE);
+            }
         }
     }
 

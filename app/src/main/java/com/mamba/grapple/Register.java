@@ -343,7 +343,7 @@ public class Register extends Fragment implements LoaderManager.LoaderCallbacks<
         }
 
         @Override
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(String result){
             mAuthTask = null;
             showProgress(false);
             Log.v("JSON Post Result", result);
@@ -374,8 +374,8 @@ public class Register extends Fragment implements LoaderManager.LoaderCallbacks<
 //                // return to results activity
 //                getActivity().finish();
             } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
+                mEmailView.setError(getString(R.string.error_email_exists));
+                mEmailView.requestFocus();
             }
         }
 

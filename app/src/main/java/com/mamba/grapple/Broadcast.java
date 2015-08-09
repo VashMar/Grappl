@@ -3,6 +3,7 @@ package com.mamba.grapple;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -10,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.CountDownTimer;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -19,6 +21,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.NumberPicker;
@@ -29,18 +32,25 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import org.w3c.dom.Text;
-
 import java.lang.reflect.Type;
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import static com.google.android.gms.internal.zzhl.runOnUiThread;
 
 
 public class Broadcast extends Fragment {
@@ -93,6 +103,15 @@ public class Broadcast extends Fragment {
     private int broadcastYear;
     private String startTime;
     private String endTime = "";
+    private boolean inView = true;
+
+
+
+    MapView mapView;
+    private GoogleMap gMap;
+
+
+    Intent countdownIntent;
 
     // Date/Time related
     TimePicker timePicker;
@@ -101,6 +120,8 @@ public class Broadcast extends Fragment {
 
     LoginManager session;
     UserObject currentUser;
+
+    Bundle savedState;
 
     public Broadcast(){
         // Required empty public constructor
@@ -127,6 +148,8 @@ public class Broadcast extends Fragment {
         lengthHr = 0;
         broadcastMS = 0;
         lengthMin = availableTime;
+
+        savedState = savedInstanceState;
 
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_broadcast, container, false);
@@ -158,6 +181,11 @@ public class Broadcast extends Fragment {
         countdownTitle = (TextView) getView().findViewById(R.id.countdownTitle);
         timeView = (TextView) getView().findViewById(R.id.timeView);
         courseContainer = (LinearLayout) getView().findViewById(R.id.courseContainer);
+
+
+
+
+        locText.setMovementMethod(new ScrollingMovementMethod());
 
         // give main control of spinner
         ((Main) getActivity()).setSpinner(spinner);
@@ -192,6 +220,8 @@ public class Broadcast extends Fragment {
         //shows location list on location button click
         locationButton.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
+                spinner.setVisibility(View.VISIBLE);
+                locationButton.setEnabled(false);
                 showLocationList(v.getContext());
             }
         });
@@ -231,12 +261,28 @@ public class Broadcast extends Fragment {
     public void onResume(){
         Log.v("Broadcast Settings", "Resumed");
         super.onResume();
+        inView = true;
+
+        if(countdownIntent != null){
+            startActivity(countdownIntent);
+            countdownIntent = null;
+        }
+
         // if the selected locations list isn't empty, show them
         if(selectedLocations.size() > 0){
             insertLocText();
         }
 
         broadcastButton.setEnabled(true);
+
+
+    }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        Log.v("Broadcast Activity", "Paused");
+        inView = false;
     }
 
     @Override
@@ -267,7 +313,7 @@ public class Broadcast extends Fragment {
                 intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
                 intent.putExtra("hrRate", hrRate);
                 intent.putStringArrayListExtra("selectedCourses", selectedCourses);
-                intent.putExtra("available", availableString);
+                intent.putExtra("available", availableTime);
                 ((Main) getActivity()).setBroadCastIntent(intent);
 
 
@@ -478,7 +524,7 @@ public class Broadcast extends Fragment {
                     timePicker.setEnabled(true);
                 }
 
-           ;
+                ;
             }
 
             @Override
@@ -497,10 +543,10 @@ public class Broadcast extends Fragment {
         });
 
 
-        seekTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+        seekTime.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                timeLength.setText( getLengthAvailable(progress));
+                timeLength.setText(getLengthAvailable(progress));
             }
 
             @Override
@@ -533,43 +579,43 @@ public class Broadcast extends Fragment {
         Button setBtn = (Button) view.findViewById(R.id.setBtn);
 
         // on suggest button click
-        setBtn.setOnClickListener(new View.OnClickListener(){
+        setBtn.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View view) {
                 // close dialog, show when available
                 whenAvailable = dropdown.getSelectedItem().toString();
-                if(!whenAvailable.equals("Now")){
+                if (!whenAvailable.equals("Now")) {
 
-                    if(whenAvailable.equals("Today")){
+                    if (whenAvailable.equals("Today")) {
                         // throw error if user picks a date in the past
-                        if(timePicker.getCurrentHour() < currHour || (currHour == timePicker.getCurrentHour() &&  timePicker.getCurrentMinute() < currMin)){
-                            Log.v("Invalid Tie", "Past time selected");
+                        if (timePicker.getCurrentHour() < currHour || (currHour == timePicker.getCurrentHour() && timePicker.getCurrentMinute() < currMin)) {
+                            Log.v("Invalid Time", "Past time selected");
                             timeError.setVisibility(View.VISIBLE);
                             return;
                         }
-                    }else{
+                    } else {
                         // must be tomorrow so increment broadcast date
                         broadcastDate += 1;
-
+                        // TODO: adjust broadcast date for end of the month
                     }
 
 
                     // get start time in ms
                     Calendar calendar = Calendar.getInstance();
                     Log.v("preset calendar", calendar.toString());
-                    Log.v("Calendar Year", broadcastYear+"" );
-                    Log.v("Calendar Month", broadcastMonth+"");
-                    Log.v("Calendar Date", broadcastDate+"");
-                    Log.v("Current Hour",  timePicker.getCurrentHour()+"");
-                    Log.v("Current Minute", timePicker.getCurrentMinute()+"");
+                    Log.v("Calendar Year", broadcastYear + "");
+                    Log.v("Calendar Month", broadcastMonth + "");
+                    Log.v("Calendar Date", broadcastDate + "");
+                    Log.v("Current Hour", timePicker.getCurrentHour() + "");
+                    Log.v("Current Minute", timePicker.getCurrentMinute() + "");
 
+                    // create a calendar instance with the set timepicker time
                     calendar.set(broadcastYear, broadcastMonth, broadcastDate, timePicker.getCurrentHour(), timePicker.getCurrentMinute());
                     broadcastMS = calendar.getTimeInMillis();
-                    Log.v("MS Start Time:", broadcastMS+"");
-                    Log.v("Calendar time", ""+calendar.getTime());
+                    Log.v("MS Start Time:", broadcastMS + "");
+                    Log.v("Calendar time", "" + calendar.getTime());
                     Log.v("Calendar", calendar.toString());
-
 
 
                     int endHr = timePicker.getCurrentHour() + lengthHr;
@@ -579,51 +625,51 @@ public class Broadcast extends Fragment {
                     String endMinStr = Integer.toString(endMin);
 
                     //handle minute overflow
-                    if(endMin > 60){
-                        endHr += endMin/60;
-                        endMin = endMin%60;
+                    if (endMin > 60) {
+                        endHr += endMin / 60;
+                        endMin = endMin % 60;
                         endMinStr = Integer.toString(endMin);
                     }
 
                     // append 0 in front of min if under 10 for time format
-                    if(startMin < 10){
+                    if (startMin < 10) {
                         startMinStr = "0" + startMinStr;
                     }
 
-                    if(endMin < 10){
+                    if (endMin < 10) {
                         endMinStr = "0" + endMinStr;
                         Log.v("endMinStr", endMinStr);
                     }
 
 
                     // PM time
-                    if(timePicker.getCurrentHour() > 12){
+                    if (timePicker.getCurrentHour() > 12) {
                         startTime = timePicker.getCurrentHour() - 12 + ":" + startMinStr + "PM";
                         // if added time crosses 24 hour mark
-                        if(endHr > 24){
+                        if (endHr > 24) {
                             endTime = endHr - 24 + ":" + endMinStr + "AM";
-                        }else{
-                            endTime =  (endHr - 12 == 12) ? endHr - 12 + ":" + endMinStr + "AM" : endHr - 12 + ":" + endMinStr + "PM";
+                        } else {
+                            endTime = (endHr - 12 == 12) ? endHr - 12 + ":" + endMinStr + "AM" : endHr - 12 + ":" + endMinStr + "PM";
                         }
-                    //AM time
-                    }else{
-                        startTime = timePicker.getCurrentHour()  + ":" + startMinStr + "AM";
+                        //AM time
+                    } else {
+                        startTime = timePicker.getCurrentHour() + ":" + startMinStr + "AM";
                         // if time crosses 12 hour mark
-                        if(endHr > 12){
-                            endTime = endHr - 12 + ":" + endMinStr +"PM";
-                        }else{
-                            endTime =  (endHr == 12) ? endHr + ":" + endMinStr + "PM" : endHr + ":" + endMinStr + "AM";
+                        if (endHr > 12) {
+                            endTime = endHr - 12 + ":" + endMinStr + "PM";
+                        } else {
+                            endTime = (endHr == 12) ? endHr + ":" + endMinStr + "PM" : endHr + ":" + endMinStr + "AM";
                         }
                     }
 
                     lengthAvailable = startTime + "-" + endTime;
 
-                }else{
+                } else {
                     broadcastMS = 0;
                     lengthAvailable = getLengthAvailable(seekTime.getProgress());
                 }
 
-                availableString = whenAvailable+", "+lengthAvailable;
+                availableString = whenAvailable + ", " + lengthAvailable;
                 insertAvailText();
                 alert.cancel();
             }
@@ -639,15 +685,21 @@ public class Broadcast extends Fragment {
 
         dialog.setCancelable(true);
 
-        View view = ((Activity)context).getLayoutInflater().inflate(R.layout.activity_addresslist, null);
-
-        ListView list = (ListView) view.findViewById(R.id.addressList);
+        View view = ((Activity)context).getLayoutInflater().inflate(R.layout.dialog_addresslist, null);
+        final ListView list = (ListView) view.findViewById(R.id.addressList);
+        final ImageView mapIcon = (ImageView) view.findViewById(R.id.mapIcon);
+        final ImageView locationPin = (ImageView) view.findViewById(R.id.locationPin);
         Button suggestBtn = (Button) view.findViewById(R.id.suggestBtn);
+        final Button showMap = (Button) view.findViewById(R.id.showMap);
+        final Button showList = (Button) view.findViewById(R.id.showList);
         locationsAdapter = new LocationsAdapter(getActivity(), locationList, selectedLocations);
         TextView title = new TextView(getActivity());
+        mapView = (MapView) view.findViewById(R.id.map);
+        mapView.onCreate(null);
+
 
         // title info
-        title.setText("Input or Choose a Meeting Location");
+        title.setText("Where can you meet?");
         title.setGravity(Gravity.CENTER);
         title.setTextSize(20);
 
@@ -679,6 +731,104 @@ public class Broadcast extends Fragment {
         dialog.setView(view);
         final AlertDialog alert = dialog.show();
 
+
+        alert.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                spinner.setVisibility(View.GONE);
+                locationButton.setEnabled(true);
+            }
+        });
+
+        new Thread(new Runnable() {
+            public void run() {
+                mapView.onResume();
+
+//                // After sleep finished blocking, create a Runnable to run on the UI Thread.
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        gMap = mapView.getMap();
+                        gMap.setMyLocationEnabled(true);
+
+                        for (int i = 0; i < locationList.size(); i++) {
+                            LatLng loc = new LatLng(locationList.get(i).lat, locationList.get(i).lon);
+                            gMap.addMarker(new MarkerOptions()
+                                    .position(loc)
+                                    .title(locationList.get(i).getName())
+                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
+
+                        }
+
+                        // selects the meeting point and stores it for reference
+                        gMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                            @Override
+                            public boolean onMarkerClick(Marker marker) {
+                                Log.v("Meeting map", "Marker Selected!");
+                                String selectedName = marker.getTitle();
+                                LocationObject selected = findMeetingSpot(selectedName);
+                                if (!selectedLocations.contains(selected)) {
+                                    // show as selected and to list
+                                    marker.setIcon((BitmapDescriptorFactory.fromResource(R.drawable.markerselected)));
+                                    selectedLocations.add(selected);
+                                } else {
+                                    // deselect and remove from list
+                                    marker.setIcon((BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
+                                    selectedLocations.remove(selected);
+                                }
+
+                                return false;
+                            }
+                        });
+
+
+                        // chosen center coordinates
+                        LatLng center = new LatLng(43.075618, -89.405192);
+
+                        // show on map
+                        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 13.9f));
+
+
+
+
+                    }
+                });
+
+            }
+
+        }).start();
+
+
+        // renders map location selection
+        showMap.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                list.setVisibility(View.GONE);
+                mapView.setVisibility(View.VISIBLE);
+                mapIcon.setVisibility(View.GONE);
+                locationPin.setVisibility(View.VISIBLE);
+                showMap.setVisibility(View.GONE);
+                showList.setVisibility(View.VISIBLE);
+                addSelectedMarkers();
+            }
+        });
+
+        // renders list location selection
+        showList.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                list.setVisibility(View.VISIBLE);
+                mapView.setVisibility(View.GONE);
+                mapIcon.setVisibility(View.VISIBLE);
+                locationPin.setVisibility(View.GONE);
+                showMap.setVisibility(View.VISIBLE);
+                showList.setVisibility(View.GONE);
+                locationsAdapter.notifyDataSetChanged();
+            }
+        });
+
+
+
         // on suggest button click
         suggestBtn.setOnClickListener(new View.OnClickListener() {
 
@@ -687,24 +837,38 @@ public class Broadcast extends Fragment {
                 // close dialog, take chosen locations and display them
                 alert.cancel();
                 insertLocText();
-                // get the coordinates of any of the locations we haven't gotten
-                geoCodeSelected();
             }
         });
 
 
 
+
     }
 
-    public void geoCodeSelected(){
-        for(LocationObject selectedLoc: selectedLocations){
-            if(selectedLoc.lat == 0.0 || selectedLoc.lon == 0.0){
-                selectedLoc.geoCode(getActivity().getApplicationContext());
-                Log.v("Selected Location", String.valueOf(selectedLocation.lat) + "," + String.valueOf(selectedLocation.lon));
+    /********************************************************* Helpers **************************************************************/
+
+    private LocationObject findMeetingSpot(String place){
+        for(int i = 0; i < locationList.size(); i++){
+            if(locationList.get(i).getName().equals(place)){
+                return locationList.get(i);
             }
+        }
+
+        return null;
+    }
+
+    private void addSelectedMarkers(){
+        //add all location markers
+        for(int i =0; i < selectedLocations.size(); i++){
+            LatLng loc = new LatLng(selectedLocations.get(i).lat, selectedLocations.get(i).lon);
+            gMap.addMarker(new MarkerOptions()
+                    .position(loc)
+                    .title(locationList.get(i).getName())
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.markerselected)));
 
         }
     }
+
 
     public String getLengthAvailable(int progress){
         availableTime = 30 + 30 * progress;
@@ -721,6 +885,7 @@ public class Broadcast extends Fragment {
         return lengthAvailable;
     }
 
+    /******************************************************** Selection Insertion *******************************************************/
     public void insertLocText(){
         String locationString = "";
         int i = 1;
@@ -874,9 +1039,14 @@ public class Broadcast extends Fragment {
             intent.putParcelableArrayListExtra("meetingSpots", selectedLocations);
             intent.putExtra("hrRate", hrRate);
             intent.putStringArrayListExtra("selectedCourses", selectedCourses);
-            intent.putExtra("available", availableString);
-            getActivity().startActivity(intent);
-            broadcastView();
+            intent.putExtra("available", availableTime);
+            if(inView){
+                getActivity().startActivity(intent);
+                broadcastView();
+            }else{
+                countdownIntent = intent;
+            }
+
         }
 
         @Override

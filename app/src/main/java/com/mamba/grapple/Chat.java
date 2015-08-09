@@ -2,6 +2,7 @@ package com.mamba.grapple;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -44,6 +45,7 @@ public class Chat extends Activity {
 
     private MessagesAdapter adapter;
     private List<MessageObject> messageList;
+    private List<String> updates;
     private LocationObject selectedLocation;
 
 
@@ -107,7 +109,9 @@ public class Chat extends Activity {
             mService = binder.getService();
             mBound = true;
             mService.connectSocket();
+            mService.inView();
             otherUser = mService.grappledUser;
+            selectedLocation = mService.getMeetingPoint();
             getActionBar().setTitle(otherUser.getName());
 
             if(otherUser.hasProfilePic()){
@@ -128,6 +132,18 @@ public class Chat extends Activity {
                 getActionBar().setIcon(R.drawable.user_icon);
             }
 
+
+            updates = mService.getUpdates();
+
+            if(!updates.isEmpty()){
+                if(updates.contains("ENDED_SESSION")){
+                    endGrappleAlert();
+                }else if(updates.contains("MEETUP_ACCEPTED")){
+                    startMeetup();
+                }
+
+                mService.clearUpdates();
+            }
 
 
             messageList = mService.retrieveConvo();
@@ -194,9 +210,7 @@ public class Chat extends Activity {
                 }
 
                 if(responseType.equals("startMeetup")){
-                    Intent meet = new Intent(Chat.this, Meetup.class);
-                    meet.putExtra("meetingPoint", selectedLocation);
-                    startActivity(meet);
+                    startMeetup();
                 }
 
                 if(responseType.equals("grapplEnded")){
@@ -210,6 +224,8 @@ public class Chat extends Activity {
                 if(responseType.equals("startSession")){
                     sessionAccept();
                 }
+
+
             }
         }
     };
@@ -225,7 +241,7 @@ public class Chat extends Activity {
         Log.v("Chat Activity", "Created");
 
         picManager = new PicManager(getApplicationContext());
-        retrieveInfo(); // gets info about other chat member
+//        retrieveInfo(); // gets info about other chat member
 
         messagesContainer = (ListView) findViewById(R.id.list_view_messages);
         sendButton = (ImageButton) findViewById(R.id.btnSend);
@@ -256,20 +272,25 @@ public class Chat extends Activity {
                 startActivity(meet);
             }
         });
+
+        // close grappl notification if needed
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(1);
     }
 
     @Override
-    protected void onResume(){
-        super.onResume();
-    }
-
-
-    @Override
-    protected void onPause(){
+    public void onPause(){
         super.onPause();
+        Log.v("Waiting", "Out of View");
+        mService.outOfView();
     }
 
+    @Override
+    public void onResume(){
+        super.onResume();
+        Log.v("Chat", "In View");
 
+    }
 
     @Override
     protected void onStart(){
@@ -303,6 +324,18 @@ public class Chat extends Activity {
     }
 
     @Override
+    public void onBackPressed(){
+
+        Log.v("Chat", "Backing to Meetup");
+        // Launched from notification, handle as special case
+        Intent intent = new Intent(this, Meetup.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        startActivity(intent);
+        finish();
+
+    }
+
+    @Override
     protected void onDestroy(){
         super.onDestroy();
     }
@@ -327,6 +360,12 @@ public class Chat extends Activity {
         Intent intent = new Intent(Chat.this, InSession.class);
         startActivity(intent);
         finish();
+    }
+
+    public void startMeetup(){
+        Intent meet = new Intent(Chat.this, Meetup.class);
+        meet.putExtra("meetingPoint", selectedLocation);
+        startActivity(meet);
     }
 
 

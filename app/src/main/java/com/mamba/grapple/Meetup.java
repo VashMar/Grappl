@@ -1,6 +1,7 @@
 package com.mamba.grapple;
 
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -8,16 +9,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
-import android.location.LocationManager;
 
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
@@ -32,8 +30,6 @@ import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -43,11 +39,7 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.json.JSONArray;
@@ -87,12 +79,15 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
     // meeting spot structure and object
     ArrayList<LocationObject> meetingSpots;
-    LocationObject meetingSpot;
+
+    // tracks background updates
+    private List<String> updates;
 
     // UI Elements
     String selectedSpot;
     Button grappleButton;
     ImageButton chatButton;
+    TextView meetupStatus;
 
     // receiver to handle server responses for this activity
     private BroadcastReceiver grapplReceiver = new BroadcastReceiver(){
@@ -141,18 +136,26 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 if(responseType.equals("startSession")){
                     sessionAccept();
                 }
+
+                if(responseType.equals("startMeetup")){
+                    meetupStatus.setText("Ready to Meet");
+                    showInfoWindow();
+                }
             }
         }
     };
 
     // callback for service connection
-    private ServiceConnection mConnection = new ServiceConnection() {
+    private ServiceConnection mConnection = new ServiceConnection(){
         public void onServiceConnected(ComponentName className, IBinder service) {
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mBound = true;
             mService.connectSocket();
+            mService.inView();
             mLastLocation = mService.getLocation();
+            updates = mService.getUpdates();
+
 
 
             // render map if it doesn't exist
@@ -174,9 +177,14 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 grappleButton.setVisibility(View.GONE);
                 chatButton.setVisibility(View.VISIBLE);
 
+                //get the other user and meeting point
+                otherUser = mService.getGrappledUser();
+                meetingPoint = mService.getMeetingPoint();
+
                 // if the meetup has been accepted and the maps already rendered, display the start session info window
                 if(mService.inMeetup() && gMap != null){
-                   showInfoWindow();
+                    meetupStatus.setText("Ready to Meet");
+                    showInfoWindow();
                 }
 
 
@@ -190,6 +198,20 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 });
 
             }
+
+
+            // check for background updates
+            if(!updates.isEmpty()){
+                if(updates.contains("ENDED_SESSION")){
+                    endGrappleAlert();
+                }else if(updates.contains("SESSION_REQUEST")){
+                    acceptRequestPrompt();
+                }
+                mService.clearUpdates();
+            }
+
+
+
         }
 
         public void onServiceDisconnected(ComponentName arg0) {
@@ -202,10 +224,12 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.v("Creating..", "Meetup View");
-        setContentView(R.layout.activity_tutorselect);
+        setContentView(R.layout.activity_meetup);
 
         picManager = new PicManager(getApplicationContext());
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
+        meetupStatus = (TextView) findViewById(R.id.meetupStatus);
+
 
         grappleButton = (Button) findViewById(R.id.grappleButton);
         grappleButton.setEnabled(false);
@@ -249,6 +273,20 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     protected void onDestroy() {
         // Unregister since the activity is about to be closed.
         super.onDestroy();
+    }
+
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        Log.v("Meetup", "Out of View");
+        mService.outOfView();
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        Log.v("Meetup", "In View");
     }
 
     @Override
@@ -360,6 +398,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
             ImageView othersPic = (ImageView) findViewById(R.id.imageView);
             othersName.setText(otherUser.getName());
 
+
             if(otherUser.hasProfilePic()){
                 othersPic.setImageBitmap(picManager.getImage(otherUser.getPicKey()));
             }
@@ -373,6 +412,9 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                 // if the tutor isn't broadcasting yet hide the grappl button
                 if(!otherUser.isAvailable()){
                     grappleButton.setVisibility(View.GONE);
+                    meetupStatus.setText("Currently Off Duty");
+                }else{
+                    meetupStatus.setText("Ready for Grappl");
                 }
 
             }else{
@@ -397,7 +439,7 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
     public void grapplSuccess(){
         Intent intent = new Intent(Meetup.this, Chat.class);
         intent.putExtra("user", otherUser);
-        intent.putExtra("meetingSpot", meetingSpot);
+        intent.putExtra("meetingSpot", meetingPoint);
         startActivity(intent);
     }
 
@@ -470,7 +512,9 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
                         // update service
                         mService.setSession(session);
                         // get the location for selectedSpot
-                        meetingSpot = findMeetingSpot(selectedSpot);
+                        meetingPoint = findMeetingSpot(selectedSpot);
+                        // store the location
+                        mService.setMeetingPoint(meetingPoint);
 
                     }
                 })
@@ -514,6 +558,11 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
 
     // launches alert dialog signalling grapple will end
     private void sessionStartPrompt(){
+
+        // close grappl notification if needed
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(2);
+
         new AlertDialog.Builder(this)
                 .setTitle("Start Session?")
                 .setMessage("Send a request to " + otherUser.firstName() + " to begin the session?")
@@ -921,8 +970,6 @@ public class Meetup extends FragmentActivity implements OnMapReadyCallback {
             ImageView profilePic = (ImageView) myContentsView.findViewById(R.id.profilePic);
 
             tutorName.setText(otherUser.getName());
-            int x = R.drawable.jess;
-            profilePic.setImageResource(x);
             return myContentsView;
         }
     }

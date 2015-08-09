@@ -83,7 +83,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
+    public void onActivityCreated(Bundle savedInstanceState){
         super.onActivityCreated(savedInstanceState);
 
 
@@ -111,23 +111,6 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
         });
 
 
-        // update distance as user slides
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                distance = progress;
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                distanceView.setText("Travel Distance: " + distance + " mi");
-            }
-        });
 
     }
 
@@ -135,7 +118,6 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
     // A private method to help us initialize our default variables and settings
     private void initialize() {
-        seekBar = (SeekBar) getView().findViewById(R.id.seekBar2);
         listView = (ListView) getView().findViewById(R.id.list);
         distanceView = (TextView) getView().findViewById(R.id.textView5);
         search = (Button) getView().findViewById(R.id.button);
@@ -162,11 +144,6 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
         // select first list item
         selected = listView.getAdapter().getView(0, null, listView);
-
-
-        // set initial distance
-        distance = seekBar.getProgress();
-        distanceView.setText("Travel Distance: " + distance + " mi");
 
         search.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -310,7 +287,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
             // send the tutorList along with login status on to the results activity
             intent.putParcelableArrayListExtra("tutorList", tutorList);
-            intent.putExtra("distance", distance);
+            intent.putExtra("course", course);
             startActivity(intent);
             spinner.setVisibility(View.GONE);
         }

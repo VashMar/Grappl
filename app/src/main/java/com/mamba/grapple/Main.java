@@ -2,6 +2,7 @@ package com.mamba.grapple;
 
 import android.app.ActionBar;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -48,8 +49,6 @@ public class Main extends FragmentActivity {
     private TabHost mTabHost;
 
     ActionBar actionBar;
-    ViewPager viewPager;
-    FragmentPagerAdapter fragPageAdapter;
     ProgressBar spinner;
 
     // service related variables
@@ -90,7 +89,11 @@ public class Main extends FragmentActivity {
                     currentUser.setTutor();
                     updateUserSession();
                     rightNow = Calendar.getInstance();
+                    Log.v("startTime", currentUser.getSessionStart()+"");
+                    Log.v("rightNow",rightNow.getTimeInMillis()+"");
                     if(currentUser.getSessionStart() <= rightNow.getTimeInMillis()){
+                        currentUser.setStartTime(rightNow.getTimeInMillis());
+                        updateUserSession();
                         Log.v("Starting Broadcast", "Waiting..");
                         startActivity(broadcastIntent);
                         spinner.setVisibility(View.GONE);
@@ -145,6 +148,7 @@ public class Main extends FragmentActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Pushbots.sharedInstance().init(this);
+        Pushbots.sharedInstance().setCustomHandler(customHandler.class);
         context = getApplicationContext();
         session = new LoginManager(context);
 
@@ -214,9 +218,7 @@ public class Main extends FragmentActivity {
         // redirect to waiting activity from push notification
         Bundle extras = getIntent().getExtras();
         if(extras != null && extras.containsKey("meetingSpots") && extras.containsKey("selectedCourses") ){
-
-
-
+            Log.v("Main Activity", "Push Note Recieved");
             Intent intent = new Intent(Main.this, Waiting.class);
             String mSpots = extras.getString("meetingSpots");
             String selCourses = extras.getString("selectedCourses");
@@ -235,7 +237,7 @@ public class Main extends FragmentActivity {
 
             Double  hrRate = Double.parseDouble(extras.getString("hrRate"));
             intent.putExtra("hrRate", hrRate);
-          
+
             startActivity(intent);
 
         }
@@ -255,6 +257,7 @@ public class Main extends FragmentActivity {
     protected void onStart(){
         super.onStart();
         Log.v("Main Activity", "Starting");
+        invalidateOptionsMenu();
         session = new LoginManager(getApplicationContext());
         if(session.isLoggedIn()){
             currentUser = session.getCurrentUser();
@@ -269,6 +272,10 @@ public class Main extends FragmentActivity {
         // register global broadcast receiver
         LocalBroadcastManager.getInstance(this).registerReceiver(multicastReceiver,
                 new IntentFilter("multicastReceiver"));
+
+        // close grappl notification if needed
+        NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.cancel(1);
     }
 
     protected void onStop(){

@@ -68,6 +68,7 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
 
 
         if(tutor.hasProfilePic()){
+            Log.v("Adapter", "Loading Tutor Pic..");
             Picasso.with(getContext()).load(tutor.getProfilePic()).into(tutorPic);
         }
 

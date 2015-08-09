@@ -18,4 +18,31 @@
         android:paddingTop="10dp"
         android:paddingLeft="10dp"/>
 
+
+    <TextView
+        android:id="@+id/empty_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="18dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp"
+        android:text="@string/empty_message"
+        android:layout_marginBottom="98dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:visibility="gone"
+        />
+
+    <ImageView
+        android:id="@+id/sadface"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/sadface"
+        android:layout_above="@+id/empty_message"
+        android:layout_centerHorizontal="true"
+        android:visibility="gone"
+        />
+
 </RelativeLayout>

@@ -27,6 +27,7 @@ import android.widget.TextView;
 import com.github.lzyzsd.circleprogress.ArcProgress;
 import com.google.android.gms.maps.MapFragment;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
@@ -58,6 +59,10 @@ public class InSession extends Activity {
     LoginManager session;
 
 
+    // tracks background updates
+    private List<String> updates;
+
+
     // service related variables
     private boolean mBound = false;
     DBService mService;
@@ -70,11 +75,25 @@ public class InSession extends Activity {
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mService.setSession(session);
+            mService.inView();
             mBound = true;
 
-           if(timer == null){
+            updates = mService.getUpdates();
+
+            if(timer == null){
                intializeSession();
            }
+
+
+            // check for background updates
+            if(!updates.isEmpty()){
+                if(updates.contains("ENDED_SESSION")){
+                    sessionEndedAlert(mService.getSeshTime());
+                }
+                mService.clearUpdates();
+            }
+
+
 
         }
         public void onServiceDisconnected(ComponentName arg0) {
@@ -181,6 +200,14 @@ public class InSession extends Activity {
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver(seshReceiver);
     }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        Log.v("Meetup", "Out of View");
+        mService.outOfView();
+    }
+
 
 
     public void onBackPressed(){

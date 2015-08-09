@@ -82,7 +82,8 @@
                 <category android:name="com.mamba.grapple" />
             </intent-filter>
         </receiver>
-        <receiver android:name="com.pushbots.push.DefaultPushHandler" />
+        <receiver android:name="com.mamba.grapple.customHandler" />
+        <!--<receiver android:name="com.pushbots.push.DefaultPushHandler" />-->
         <service android:name="com.pushbots.push.GCMIntentService" />
 
         <!--<service android:name=".GcmIntentService" />-->

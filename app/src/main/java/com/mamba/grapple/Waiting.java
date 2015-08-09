@@ -37,11 +37,15 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.nostra13.universalimageloader.core.ImageLoader;
+import com.pushbots.push.PBNotification;
+import com.pushbots.push.PBNotificationIntent;
+import com.pushbots.push.Pushbots;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 
@@ -72,7 +76,8 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     private ArrayList<LocationObject> meetingSpots;
     private ArrayList<String> selectedCourses;
     private double hrRate;
-    private String available = "";
+    private int availableTime;
+    private String endTime;
 
 
 
@@ -94,13 +99,22 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                     otherUser = extras.getParcelable("user");
                     String place = extras.getString("place");
                     LocationObject meetingSpot = findMeetingSpot(place);
+
+                    // start a new chat and store the meeting spot
                     mService.newConvo();
+                    mService.setMeetingPoint(meetingSpot);
 
                     Intent chatIntent = new Intent(Waiting.this, Chat.class);
                     chatIntent.putExtra("user", otherUser);
                     chatIntent.putExtra("meetingSpot", meetingSpot);
                     startActivity(chatIntent);
                     finish();
+
+                    // remove pending notification from launching this activity
+                    if (PBNotificationIntent.notificationsArray != null) {
+                        Log.v("Clearing Notifcations", PBNotificationIntent.notificationsArray+"");
+                        PBNotificationIntent.notificationsArray = null;
+                    }
                 }
 
             }
@@ -138,6 +152,11 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 Log.v("Waiting Activity", "received response: " + responseType);
 
                 if (responseType.equals("removeAvailableDone")) {
+                    //Clear Notification array
+                    if(PBNotificationIntent.notificationsArray != null){
+                        Log.v("Notifications", PBNotificationIntent.notificationsArray+"");
+                        PBNotificationIntent.notificationsArray = null;
+                    }
                     ((Activity) Waiting.this).finish();
                 }
             }
@@ -165,7 +184,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             meetingSpots = extras.getParcelableArrayList("meetingSpots");
             selectedCourses = extras.getStringArrayList("selectedCourses");
             hrRate = extras.getDouble("hrRate");
-//            available = extras.getString("available");
+            availableTime = extras.getInt("available");
 
             if(meetingSpots == null && selectedCourses == null ){
                 Log.v("Waiting Activity", "Converting String Data");
@@ -180,10 +199,44 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
                 selectedCourses = gson.fromJson(selCourses, resultType);
 
                 hrRate = Double.parseDouble(extras.getString("hrRate"));
+                availableTime = Integer.parseInt(extras.getString("available"));
                 Log.v("mSpots", mSpots);
                 Log.v("selCourses", selCourses);
-
             }
+
+
+
+            Calendar cal = Calendar.getInstance();
+            // get the date data from the received start time
+            cal.setTimeInMillis(currentUser.getSessionStart());
+            int startMin = cal.get(Calendar.MINUTE);
+            Log.v("startMin", startMin+"");
+            int endMin = startMin + availableTime;
+            Log.v("endMin", endMin+"");
+            int endHr = cal.get(Calendar.HOUR_OF_DAY);
+            Log.v("endHr", endHr+"");
+            endTime = endMin+"";
+
+            // deal with overflow when adding availability time
+            if(endMin > 60){
+                endHr += endMin/60;
+                endMin = endMin%60;
+                endTime = String.valueOf(endMin);
+                if(endMin < 10){
+                    endTime = "0" +endTime;
+                }
+            }
+
+            Log.v("endHr", endHr+"");
+            // handle AM or PM for availability end time and build the string
+            if(endHr > 24){
+                endTime = endHr - 24 + ":" + endMin + "AM";
+            }else if(endHr >= 12){
+                endTime =  (endHr - 12 == 12) ? endHr - 12 + ":" + endTime + "AM" : endHr - 12 + ":" + endTime + "PM";
+            }else{
+                endTime = endHr + ":" + endTime + "AM";
+            }
+
 
         }
 
@@ -218,7 +271,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         tutorName.setText(currentUser.getName());
         tutorPrice.setText("Hourly Rate: $" + String.format("%.2f", hrRate));
         tutorCourses.setText("Courses: " + courseString);
-//        tutorAvailability.setText("Available: " + available);
+        tutorAvailability.setText("Available Until: " + endTime);
 
 
         cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -231,6 +284,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         //create map
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
 
 
     }
@@ -250,6 +304,10 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         // register broadcast receiver for this activity
         LocalBroadcastManager.getInstance(this).registerReceiver(multicastReceiver,
                 new IntentFilter("multicastReceiver"));
+
+        Pushbots.sharedInstance().setPushEnabled(false);
+        Pushbots.sharedInstance().unRegister();
+
     }
 
     @Override
@@ -263,9 +321,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     public void onResume(){
         super.onResume();
         Log.v("Waiting", "In View");
-        if (mBound) {
-            mService.inView();
-        }
+
     }
 
     @Override
@@ -279,6 +335,11 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver(multicastReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(waitingReceiver);
+
+        Pushbots.sharedInstance().setPushEnabled(true);
+        Pushbots.sharedInstance().register();
+
+
     }
 
 
@@ -354,6 +415,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             coordinates.add(meetLoc);
             googleMap.addMarker(new MarkerOptions()
                     .position(meetLoc)
+                    .title(meetingSpot.getName())
                     .icon(BitmapDescriptorFactory.fromResource(R.drawable.markersmall)));
 
         }

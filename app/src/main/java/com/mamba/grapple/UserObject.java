@@ -188,6 +188,10 @@ public class UserObject implements Parcelable {
 
     public long getSessionStart(){ return this.session.startTime; }
 
+    public void setStartTime(long startTime){
+        this.session.startTime = startTime;
+    }
+
     public boolean hasProfilePic(){
         if(this.profilePic != null && !this.profilePic.isEmpty()){
             return true;

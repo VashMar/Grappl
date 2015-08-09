@@ -13,6 +13,14 @@ import android.content.ServiceConnection;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.media.Image;
@@ -27,8 +35,11 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
@@ -37,6 +48,7 @@ import com.amazonaws.mobileconnectors.s3.transfermanager.TransferProgress;
 import com.amazonaws.mobileconnectors.s3.transfermanager.Upload;
 import com.amazonaws.regions.Regions;
 import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
@@ -56,6 +68,8 @@ public class Account extends Activity {
     TransferManager transferManager;
 
 
+
+
     LoginManager session;
     UserObject currentUser;
     PicManager picManager;
@@ -66,8 +80,10 @@ public class Account extends Activity {
     private boolean mBound = false;
     DBService mService;
 
-    Button selectPhoto;
+    TextView username;
     ImageView profilePic;
+    ListView accountOpts;
+
     private Uri picUri;
     private Target mTarget = new Target() {
         @Override
@@ -126,15 +142,22 @@ public class Account extends Activity {
         currentUser = session.getCurrentUser();
         picManager = new PicManager((getApplicationContext()));
 
-        selectPhoto = (Button) findViewById(R.id.btnSelectPhoto);
         profilePic = (ImageView) findViewById(R.id.profilePic);
+        username = (TextView) findViewById(R.id.username);
+        accountOpts = (ListView) findViewById(R.id.account_options);
 
+
+        username.setText(currentUser.getName());
         if(currentUser.hasProfilePic()){
-            profilePic.setImageBitmap(picManager.getImage(currentUser.getPicKey()));
+            profilePic.setImageBitmap(roundCornerImage(picManager.getImage(currentUser.getPicKey()), 20));
+        }else{
+            Drawable iconDrawable = getResources().getDrawable(R.drawable.user_icon_large);
+            Bitmap defIcon = ((BitmapDrawable) iconDrawable).getBitmap();
+            profilePic.setImageBitmap(roundCornerImage(defIcon , 20));
         }
 
 
-        selectPhoto.setOnClickListener(new View.OnClickListener() {
+        profilePic.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 selectImage();
@@ -150,9 +173,19 @@ public class Account extends Activity {
 
        transferManager = new TransferManager(credentialsProvider);
 
-
-
-
+        accountOpts.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // temporary logout testing
+                if(position == 0){
+                    Intent logoffIntent = new Intent(Account.this, SignIn.class);
+                    session.logout();
+                    mService.endConnection();
+                    startActivity(logoffIntent);
+                    finish();
+                }
+            }
+        });
     }
 
     public void onStart() {
@@ -240,6 +273,38 @@ public class Account extends Activity {
         }
     }
 
+    public Bitmap roundCornerImage(Bitmap src, float round) {
+        // Source image size
+        int width = src.getWidth();
+        int height = src.getHeight();
+        // create result bitmap output
+        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        // set canvas for painting
+        Canvas canvas = new Canvas(result);
+        canvas.drawARGB(0, 0, 0, 0);
+
+        // configure paint
+        final Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        paint.setColor(Color.BLACK);
+
+        // configure rectangle for embedding
+        final Rect rect = new Rect(0, 0, width, height);
+        final RectF rectF = new RectF(rect);
+
+        // draw Round rectangle to canvas
+        canvas.drawRoundRect(rectF, round, round, paint);
+
+        // create Xfer mode
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+        // draw source image to canvas
+        canvas.drawBitmap(src, rect, rect, paint);
+
+        // return final image
+        return result;
+    }
+
+
 
 
     @Override
@@ -285,7 +350,7 @@ public class Account extends Activity {
                 Bundle extras = data.getExtras();
                 // get the cropped bitmap
                 Bitmap thePic = extras.getParcelable("data");
-                profilePic.setImageBitmap(thePic);
+                profilePic.setImageBitmap(roundCornerImage(thePic, 20));
 
 
             }
