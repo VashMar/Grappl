@@ -197,15 +197,20 @@ public class Broadcast extends Fragment {
         broadcastButton.setOnClickListener(new View.OnClickListener(){
            @Override
            public void onClick(View v){
-               // if they hit the broadcast button and aren't logged in, redirect them to the login
-               if(!((Main) getActivity()).session.isLoggedIn()){
-                   // transfer the user to the register page
-                   Intent intent = new Intent(getActivity(), SignIn.class);
 
-                   // we expect the auth response
-                   startActivityForResult(intent, 1);
+               if(((Main) getActivity()).network.getConnectivityStatus(getActivity().getApplicationContext()) != 0){
+                   // if they hit the broadcast button and aren't logged in, redirect them to the login
+                   if(!((Main) getActivity()).session.isLoggedIn()){
+                       // transfer the user to the register page
+                       Intent intent = new Intent(getActivity(), SignIn.class);
+
+                       // we expect the auth response
+                       startActivityForResult(intent, 1);
+                   }else{
+                       startBroadcast();
+                   }
                }else{
-                   startBroadcast();
+                   ((Main) getActivity()).noConnectionDialog();
                }
 
            }
@@ -363,12 +368,12 @@ public class Broadcast extends Fragment {
 
         //add elements from array to list view, show previously selected items
         listView.setAdapter(new ArrayAdapter<String>(getActivity(),
-                R.layout.row, ((Main) getActivity()).COURSES) { // TODO swap COURSES with courseList
+                R.layout.row, ((Main) getActivity()).courseList) { // TODO swap COURSES with courseList
 
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
                 final View renderer = super.getView(position, convertView, parent);
-                if (selectedCourses.contains(((Main) getActivity()).COURSES[position])) {
+                if (selectedCourses.contains(((Main) getActivity()).courseList.get(position))) {
                     Log.v("Position", "" + position);
                     renderer.setBackgroundColor(Color.rgb(62, 175, 212));
                 } else {
@@ -386,7 +391,7 @@ public class Broadcast extends Fragment {
                                     int position, long id) {
                 Log.v("Item Click Position", "" + position);
                 // get the selected course
-                selectedCourse = ((Main) getActivity()).COURSES[position];
+                selectedCourse = ((Main) getActivity()).courseList.get(position);
 
                 // If a previous item was selected unhighlight it and remove it from the list
                 if (selectedCourses.contains(selectedCourse)) {

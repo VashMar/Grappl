@@ -51,6 +51,9 @@ public class Main extends FragmentActivity {
     ActionBar actionBar;
     ProgressBar spinner;
 
+    //Network connectivity check
+    NetworkUtil network;
+
     // service related variables
     private boolean mBound = false;
     DBService mService;
@@ -65,9 +68,10 @@ public class Main extends FragmentActivity {
 
     Calendar rightNow;
 
-    // temporary until DB load setup (use SimpleCursorAdapter for DB)
-    static final String[] COURSES = {"Chemistry 103", "Comp Sci 302", "French 4", "Math 234", "Physics 202"};
+    // courses
     ArrayList<String> courseList;
+
+
 
     // receiver intended for this activity
     private BroadcastReceiver mainReceiver = new BroadcastReceiver(){
@@ -133,7 +137,7 @@ public class Main extends FragmentActivity {
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mService.setSession(session);
-            mService.setDeviceID(Pushbots.sharedInstance().regID());
+             mService.setDeviceID(Pushbots.sharedInstance().regID());
             mBound = true;
 
         }
@@ -146,12 +150,25 @@ public class Main extends FragmentActivity {
 
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
+
+
+        courseList = new ArrayList<String>();
+        SharedPreferences pref = getSharedPreferences("locations", 0);
+
+        String courseStr = pref.getString("courses", null);
+        Log.v("courses", courseStr);
+
+        Gson gson = new Gson();
+        Type resultType = new TypeToken<ArrayList<String>>(){}.getType();
+        courseList = gson.fromJson(courseStr, resultType);
+        Log.v("locations list", courseList.size() + "");
+
         setContentView(R.layout.activity_main);
         Pushbots.sharedInstance().init(this);
         Pushbots.sharedInstance().setCustomHandler(customHandler.class);
         context = getApplicationContext();
         session = new LoginManager(context);
-
+        network = new NetworkUtil();
         mTabHost = (TabHost) findViewById(R.id.tabHost);
         mTabHost.setup();
 
@@ -225,9 +242,9 @@ public class Main extends FragmentActivity {
 
             Log.v("mSpots", mSpots);
             Log.v("selCourses", selCourses);
-            Gson gson = new Gson();
 
-            Type resultType = new TypeToken<ArrayList<LocationObject>>(){}.getType();
+
+            resultType = new TypeToken<ArrayList<LocationObject>>(){}.getType();
             ArrayList<LocationObject> meetingSpots =  gson.fromJson(mSpots, resultType);
             intent.putParcelableArrayListExtra("meetingSpots", meetingSpots);
 
@@ -368,6 +385,53 @@ public class Main extends FragmentActivity {
         session.saveUser(currentUser);
         mService.setSession(session);
     }
+
+
+
+
+    public void noConnectionDialog(){
+        new AlertDialog.Builder(this)
+                .setTitle("Unable to connect to the internet")
+                .setMessage("Grappl needs an internet connection!")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+
+    }
+
+//
+//    public void showAlertDialog(String title, String message) {
+//
+//
+//        AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+//        dialog.setTitle(title);
+//        dialog.setMessage(message);
+//        dialog.setNeutralButton("Ok")
+////        dialog.setPositiveButton("Enable GPS?", new DialogInterface.OnClickListener() {
+////            @Override
+////            public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+////                // TODO Auto-generated method stub
+////                Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+////                context.startActivity(myIntent);
+////                //get gps
+////            }
+////        });
+////        dialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+////
+////            @Override
+////            public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+////                // TODO Auto-generated method stub
+////
+////            }
+////        });
+//        dialog.show();
+//
+//
+//    }
 
 }
 

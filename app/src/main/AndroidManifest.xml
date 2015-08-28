@@ -27,6 +27,7 @@
     <uses-permission android:name="com.mamba.grapple.permission.C2D_MESSAGE" />
 
 
+
     <!--
  To retrieve OAuth 2.0 tokens or invalidate tokens to disconnect a user. This disconnect
      option is required to comply with the Google+ Sign-In developer policies
@@ -165,6 +166,10 @@
             android:launchMode="singleTask"
             android:label="@string/title_activity_waiting" >
         </activity>
+
+        <service
+            android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
+            android:enabled="true" />
     </application>
 
 </manifest>

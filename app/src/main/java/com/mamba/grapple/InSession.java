@@ -376,7 +376,15 @@ public class InSession extends Activity {
 
         @Override
         public void onFinish() {
+
             arcProgress.setBottomText("Completed.");
+
+            // go to receipt
+            Intent intent = new Intent(InSession.this, PostSession.class);
+            // set to total session time
+            startActivity(intent);
+            mService.resetStates();
+            finish();
         }
 
         @Override

@@ -129,8 +129,16 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             mService.inView();
             mBound = true;
             mLastLocation = mService.getLocation();
+
+            if(mService.getUpdates().contains("GRAPPLE")){
+                Intent intent = new Intent(Waiting.this, Chat.class);
+                startActivity(intent);
+                mService.clearUpdates();
+                finish();
+            }
+
         }
-        public void onServiceDisconnected(ComponentName arg0) {
+        public void onServiceDisconnected(ComponentName arg0){
             mBound = false;
         }
     };
@@ -206,36 +214,36 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
 
 
 
-            Calendar cal = Calendar.getInstance();
-            // get the date data from the received start time
-            cal.setTimeInMillis(currentUser.getSessionStart());
-            int startMin = cal.get(Calendar.MINUTE);
-            Log.v("startMin", startMin+"");
-            int endMin = startMin + availableTime;
-            Log.v("endMin", endMin+"");
-            int endHr = cal.get(Calendar.HOUR_OF_DAY);
-            Log.v("endHr", endHr+"");
-            endTime = endMin+"";
-
-            // deal with overflow when adding availability time
-            if(endMin > 60){
-                endHr += endMin/60;
-                endMin = endMin%60;
-                endTime = String.valueOf(endMin);
-                if(endMin < 10){
-                    endTime = "0" +endTime;
-                }
-            }
-
-            Log.v("endHr", endHr+"");
-            // handle AM or PM for availability end time and build the string
-            if(endHr > 24){
-                endTime = endHr - 24 + ":" + endMin + "AM";
-            }else if(endHr >= 12){
-                endTime =  (endHr - 12 == 12) ? endHr - 12 + ":" + endTime + "AM" : endHr - 12 + ":" + endTime + "PM";
-            }else{
-                endTime = endHr + ":" + endTime + "AM";
-            }
+//            Calendar cal = Calendar.getInstance();
+//            // get the date data from the received start time
+//            cal.setTimeInMillis(currentUser.getSessionStart());
+//            int startMin = cal.get(Calendar.MINUTE);
+//            Log.v("startMin", startMin+"");
+//            int endMin = startMin + availableTime;
+//            Log.v("endMin", endMin+"");
+//            int endHr = cal.get(Calendar.HOUR_OF_DAY);
+//            Log.v("endHr", endHr+"");
+//            endTime = endMin+"";
+//
+//            // deal with overflow when adding availability time
+//            if(endMin > 60){
+//                endHr += endMin/60;
+//                endMin = endMin%60;
+//                endTime = String.valueOf(endMin);
+//                if(endMin < 10){
+//                    endTime = "0" +endTime;
+//                }
+//            }
+//
+//            Log.v("endHr", endHr+"");
+//            // handle AM or PM for availability end time and build the string
+//            if(endHr > 24){
+//                endTime = endHr - 24 + ":" + endMin + "AM";
+//            }else if(endHr >= 12){
+//                endTime =  (endHr - 12 == 12) ? endHr - 12 + ":" + endTime + "AM" : endHr - 12 + ":" + endTime + "PM";
+//            }else{
+//                endTime = endHr + ":" + endTime + "AM";
+//            }
 
 
         }
@@ -256,7 +264,6 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         tutorName = (TextView) findViewById(R.id.tutorName);
         tutorPrice = (TextView) findViewById(R.id.tutorPrice);
         tutorCourses = (TextView) findViewById(R.id.tutorCourses);
-        tutorAvailability = (TextView) findViewById(R.id.tutorAvailability);
         tutorPic = (ImageView) findViewById(R.id.profilePic);
 
         //update UI elements
@@ -271,7 +278,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         tutorName.setText(currentUser.getName());
         tutorPrice.setText("Hourly Rate: $" + String.format("%.2f", hrRate));
         tutorCourses.setText("Courses: " + courseString);
-        tutorAvailability.setText("Available Until: " + endTime);
+
 
 
         cancelButton.setOnClickListener(new View.OnClickListener() {

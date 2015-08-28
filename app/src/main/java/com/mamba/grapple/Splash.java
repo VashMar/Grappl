@@ -51,6 +51,7 @@ public class Splash extends Activity {
     SharedPreferences sharedPref;
 
     String LOC_PATH = "http://protected-dawn-4244.herokuapp.com/locations";
+    String COURSE_PATH = "http://protected-dawn-4244.herokuapp.com/courses";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +72,8 @@ public class Splash extends Activity {
             bindService(new Intent(this, DBService.class), mConnection, Context.BIND_AUTO_CREATE);
         }
 
-        loadLocations();
+        // loads courses and meeting spots at location
+        loadLocData();
 
         /* New Handler to start the Menu-Activity
          * and close this Splash-Screen after some seconds.*/
@@ -112,13 +114,14 @@ public class Splash extends Activity {
 
 
 
-    public void loadLocations(){
+    public void loadLocData(){
         //  send the data in a http request
         ConnectivityManager conMgr = (ConnectivityManager)
                getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = conMgr.getActiveNetworkInfo();
         // if there is a network connection create a request thread
         if(networkInfo != null && networkInfo.isConnected()){
+            new LocationRetrieval().execute(COURSE_PATH);
             new LocationRetrieval().execute(LOC_PATH);
         }else{
             Log.v("no connection", "Failed to connect to internet");
@@ -139,7 +142,7 @@ public class Splash extends Activity {
 
             // params comes from the execute() call: params[0] is the url.
             try {
-                 getLocs(urls[0]);
+                getData(urls[0]);
                 return "";
 
             } catch (IOException e) {
@@ -164,7 +167,7 @@ public class Splash extends Activity {
     // Given a URL, establishes an HttpUrlConnection and retrieves
     // the web page content as a InputStream, which it returns as
     // a string.
-    private void getLocs(String myurl) throws IOException {
+    private void getData(String myurl) throws IOException {
         InputStream is = null;
         BufferedReader bufferedReader;
         StringBuilder stringBuilder;
@@ -202,13 +205,20 @@ public class Splash extends Activity {
 
             String result = stringBuilder.toString();
 
-            Log.v("Returned Locations", result);
+
 
             SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putString("locations", result);
+            if(myurl.equals(LOC_PATH)){
+                Log.v("Locations Pulled", result);
+                editor.putString("locations", result);
+            }else{
+                Log.v("Courses Pulled", result);
+                editor.putString("courses", result);
+            }
+
             editor.commit();
 
-            Log.v("Preferences", "Locations Changed");
+
 
 
             // Makes sure that the InputStream is closed after the app is

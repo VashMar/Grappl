@@ -10,7 +10,7 @@
     tools:context="com.mamba.grapple.Search"
     android:background="@color/background">
 
-    <FrameLayout
+    <RelativeLayout
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:id="@+id/frameLayout"
@@ -22,18 +22,19 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:text="Search"
-            android:id="@+id/button"
+            android:id="@+id/search_button"
             android:layout_gravity="center_horizontal|bottom"
             android:background="@color/theme"
             android:textColor="@color/white"
-         />
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Select a course"
             android:id="@+id/textView6"
-            android:layout_below="@+id/textView5"
             android:layout_centerHorizontal="true"
             android:layout_gravity="center_horizontal|top"
             android:textSize="20dp"
@@ -42,22 +43,25 @@
 
         <ListView android:id="@+id/list"
             android:layout_width="fill_parent"
-            android:layout_height="355dp"
-            android:layout_gravity="center_horizontal|top"
+            android:layout_height="wrap_content"
             android:layout_marginTop="45dp"
             android:headerDividersEnabled="true"
-        />
+            android:layout_alignTop="@+id/textView6"
+            android:layout_above="@+id/search_button" />
 
         <ProgressBar
             android:id="@+id/spinner"
             style="?android:attr/progressBarStyleLarge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
             android:layout_centerHorizontal="true"
             android:visibility="gone"
-            android:layout_gravity="center" />
+            />
 
-    </FrameLayout>
+
+
+    </RelativeLayout>
 
 
 </RelativeLayout>

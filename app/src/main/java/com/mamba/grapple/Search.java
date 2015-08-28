@@ -56,6 +56,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
     private boolean loggedIn = false;
     SharedPreferences sharedPreferences;
 
+
     // UI Elements
     ListView listView;
     SeekBar seekBar;
@@ -71,13 +72,21 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
     String currLong;
 
 
+
     // current url path for tutor list retrieval
     static final String TUTOR_PATH = "http://protected-dawn-4244.herokuapp.com/tutors";
 
 
+    public Search(){
+        // Required empty public constructor
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+
+
+
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_search, container, false);
     }
@@ -86,19 +95,16 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
     public void onActivityCreated(Bundle savedInstanceState){
         super.onActivityCreated(savedInstanceState);
 
-
         // grab all the view items and set defaults
         initialize();
-
-        LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-        String locationProvider = LocationManager.NETWORK_PROVIDER;
-        mLastLocation = locationManager.getLastKnownLocation(locationProvider);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
+                Log.v("List Item", position + "selected");
+
                 // If a previous item was selected unhighlight it
-                if(selected != null){
+                if (selected != null) {
                     selected.setBackgroundColor(Color.TRANSPARENT);
                     parent.getChildAt(0).setBackgroundColor(Color.TRANSPARENT);
                 }
@@ -112,45 +118,66 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
 
 
+
+        LocationManager locationManager = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+        String locationProvider = LocationManager.NETWORK_PROVIDER;
+        mLastLocation = locationManager.getLastKnownLocation(locationProvider);
+
+
+
     }
+
+//    @Override
+//    public void onStart(){
+//        super.onStart();
+//        // grab all the view items and set defaults
+//        initialize();
+//    }
+//
 
 
 
     // A private method to help us initialize our default variables and settings
     private void initialize() {
         listView = (ListView) getView().findViewById(R.id.list);
-        distanceView = (TextView) getView().findViewById(R.id.textView5);
-        search = (Button) getView().findViewById(R.id.button);
+        search = (Button) getView().findViewById(R.id.search_button);
         spinner = (ProgressBar) getView().findViewById(R.id.spinner);
+
+
+        search.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.v("Search", "Search Selected");
+                if (((Main) getActivity()).network.getConnectivityStatus(getActivity().getApplicationContext()) != 0) {
+                    tutorSearch(v);
+                } else {
+                    ((Main) getActivity()).noConnectionDialog();
+                }
+            }
+        });
+
 
 
         //add elements from array to list view
         listView.setAdapter(new ArrayAdapter<String>(getActivity(),
-                R.layout.row, ((Main) getActivity()).COURSES){ // TODO swap COURSES with courseList
+                R.layout.row, ((Main)getActivity()).courseList) {
 
             @Override
-            public View getView(int position, View convertView, ViewGroup parent)
-            {
+            public View getView(int position, View convertView, ViewGroup parent){
                 final View renderer = super.getView(position, convertView, parent);
-                if (position == 0)
-                {
+                if (position == 0) {
                     // highlight the first list item by default
-                    renderer.setBackgroundColor(Color.rgb(62, 175, 212));
+                    if(selected == null){
+                        selected = renderer;
+                        selected.setBackgroundColor(Color.rgb(62, 175, 212));
+                    }
+
                 }
                 return renderer;
             }
         });
 
 
-        // select first list item
-        selected = listView.getAdapter().getView(0, null, listView);
-
-        search.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                tutorSearch(v);
-            }
-        });
 
     }
 
@@ -353,6 +380,9 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
             }
         }
     }
+
+
+
 
 
 

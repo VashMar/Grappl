@@ -281,8 +281,10 @@ public class Chat extends Activity {
     @Override
     public void onPause(){
         super.onPause();
-        Log.v("Waiting", "Out of View");
-        mService.outOfView();
+        Log.v("Chat", "Out of View");
+        if(mBound){
+            mService.outOfView();
+        }
     }
 
     @Override

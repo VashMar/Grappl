@@ -1,6 +1,7 @@
 package com.mamba.grapple;
 
 import android.app.Activity;
+import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -67,6 +68,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     private static final String END_UPDATE = "ENDED_SESSION";
     private static final String MEETUP = "MEETUP_ACCEPTED";
     private static final String SESH_REQUEST = "SESSION_REQUEST";
+    private static final String GRAPPLE = "GRAPPLE";
 
     //notification types
     private static final int NOTIFICATION_GRAPPLE = 1;
@@ -274,14 +276,14 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                         PendingIntent.FLAG_UPDATE_CURRENT
                 );
 
-        if(Build.VERSION.SDK_INT < 21){
-            mBuilder.setFullScreenIntent(resultPendingIntent, true);
-        }else{
-            mBuilder.setContentIntent(resultPendingIntent);
-        }
+////        if(Build.VERSION.SDK_INT < 21){
+////            mBuilder.setFullScreenIntent(resultPendingIntent, true);
+////        }else{
+////            mBuilder.setContentIntent(resultPendingIntent);
+//        }
 
-        mBuilder.setAutoCancel(true);
-
+//        mBuilder.setAutoCancel(true);
+        mBuilder.setContentIntent(resultPendingIntent);
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         // mId allows you to update the notification later on.
@@ -910,6 +912,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                     // get the meeting point and send a notification
                     meetingPoint = findMeetingSpot(data.getString("place"));
                     sendNotification(NOTIFICATION_GRAPPLE);
+                    updates.add(GRAPPLE);
 //                    NotificationCompat.Builder mBuilder =
 //                            new NotificationCompat.Builder(DBService.this)
 //                                    .setSmallIcon(R.drawable.notification_icon)

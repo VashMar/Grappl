@@ -46,9 +46,16 @@ import com.amazonaws.auth.CognitoCachingCredentialsProvider;
 import com.amazonaws.mobileconnectors.s3.transfermanager.TransferManager;
 import com.amazonaws.mobileconnectors.s3.transfermanager.TransferProgress;
 import com.amazonaws.mobileconnectors.s3.transfermanager.Upload;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.squareup.picasso.MemoryPolicy;
+import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Target;
 
@@ -65,7 +72,9 @@ public class Account extends Activity {
 
     // Amazon s3 related
     CognitoCachingCredentialsProvider credentialsProvider;
-    TransferManager transferManager;
+//    TransferManager transferManager;
+    TransferUtility transferUtility;
+    TransferObserver observer;
 
 
 
@@ -118,11 +127,12 @@ public class Account extends Activity {
                 Log.v("responseType", responseType);
                 Log.v("Main Activity", "received multicast: " + responseType);
 
-                if (responseType.equals("updatedPic")){
+                if (responseType.equals("updatedPic")) {
                     currentUser.setProfilePic(extras.getString("profilePic"));
                     updateUserSession();
                     Log.v("Profile Pic Updated", currentUser.getProfilePic());
-                    Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(mTarget);
+                    Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).networkPolicy(NetworkPolicy.NO_CACHE).
+                            memoryPolicy(MemoryPolicy.NO_CACHE).into(mTarget);
                 }
             }
 
@@ -171,7 +181,10 @@ public class Account extends Activity {
                 Regions.US_EAST_1 // Region
         );
 
-       transferManager = new TransferManager(credentialsProvider);
+//        transferManager = new TransferManager(credentialsProvider);
+        AmazonS3Client s3Client  = new AmazonS3Client(credentialsProvider);
+        transferUtility = new TransferUtility(s3Client, getApplicationContext());
+
 
         accountOpts.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -328,21 +341,73 @@ public class Account extends Activity {
             } else if (requestCode == 3){
                 final File cropFile = new File(Environment.getExternalStorageDirectory()+File.separator + "temp_CROP.jpg");
 
+
+                final String ref = "profilePic-" + currentUser.getId();
+
                 //Upload to s3
                 Thread thread = new Thread(new Runnable(){
                     @Override
                     public void run(){
-                        String ref = "profilePic-" + currentUser.getId();
-                        Upload upload = transferManager.upload("grappl-pics", ref, cropFile);
-                        while(!upload.isDone()){
-                            TransferProgress transferred = upload.getProgress();
-                            Log.v("Percent Uploaded", transferred.getPercentTransferred()+"");
-                        }
 
-                        mService.updateProfilePic(ref);
+                        final String ref = "profilePic-" + currentUser.getId();
+                        Log.v("Uploading", ref);
+                        observer = transferUtility.upload("grappl-pics", ref, cropFile);
+                        observer.setTransferListener(new TransferListener() {
+
+                            @Override
+                            public void onError(int id, Exception e) {
+                                e.printStackTrace();
+                            }
+
+                            @Override
+                            public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                                Log.v("Progress", ""+(bytesCurrent/bytesTotal) * 100);
+
+                            }
+
+                            @Override
+                            public void onStateChanged(int id, TransferState newState) {
+                                Log.v("Upload State",""+newState);
+                                if(newState.equals(TransferState.COMPLETED)){
+                                    mService.updateProfilePic(ref);
+                                }
+                            }
+                        });
+
+//                        while(!upload.isDone()){
+//                            TransferProgress transferred = upload.getProgress();
+//                            Log.v("Percent Uploaded", transferred.getPercentTransferred()+"");
+//                        }
+
+
                     }
                 });
                 thread.start();
+
+//                Log.v("Uploading", ref);
+//                observer = transferUtility.upload("grappl-pics", ref, cropFile);
+//                observer.setTransferListener(new TransferListener() {
+//
+//                    @Override
+//                    public void onError(int id, Exception e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    @Override
+//                    public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+//                        Log.v("Progress", "" + (bytesCurrent / bytesTotal) * 100);
+//
+//                    }
+//
+//                    @Override
+//                    public void onStateChanged(int id, TransferState newState) {
+//                        Log.v("Upload State", "" + newState);
+//                        if (newState.equals(TransferState.COMPLETED)) {
+//                            mService.updateProfilePic(ref);
+//                        }
+//                    }
+//                });
+//
 
 
 
@@ -414,4 +479,35 @@ public class Account extends Activity {
         session.saveUser(currentUser);
         mService.setSession(session);
     }
+
+
+
+    /*
+   * A TransferListener class that can listen to a upload task and be notified
+   * when the status changes.
+   */
+    private class UploadListener implements TransferListener {
+
+        // Simply updates the UI list when notified.
+        @Override
+        public void onError(int id, Exception e) {
+            e.printStackTrace();
+        }
+
+        @Override
+        public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+            Log.v("Progress", ""+(bytesCurrent/bytesTotal) * 100);
+
+        }
+
+        @Override
+        public void onStateChanged(int id, TransferState newState) {
+            Log.v("Upload State",""+newState);
+        }
+    }
+
 }
+
+
+
+
