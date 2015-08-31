@@ -56,6 +56,8 @@ import java.util.List;
 
 public class DBService extends Service implements LocationListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    private static final int ANDROID_PLATFORM = 1;
+
     private Socket socket;
     private final IBinder myBinder = new LocalBinder();
     private final Gson gson = new Gson();
@@ -447,8 +449,18 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     public void setDeviceID(String id){
         if(!id.equals(deviceID)){
             deviceID = id;
-            Log.v("Emitting Device ID ", deviceID);
-            socket.emit("deviceID", deviceID);
+            JSONObject broadcastInfo = new JSONObject();
+            try{
+                Log.v("Emitting Device ID ", deviceID);
+                broadcastInfo.put("platform", ANDROID_PLATFORM);
+                broadcastInfo.put("deviceID", deviceID);
+                socket.emit("deviceID", broadcastInfo);
+            }catch(JSONException e){
+                e.printStackTrace();
+            }
+
+
+
         }
 
     }

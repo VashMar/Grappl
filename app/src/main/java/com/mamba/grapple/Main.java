@@ -137,7 +137,7 @@ public class Main extends FragmentActivity {
             DBService.LocalBinder binder = (DBService.LocalBinder) service;
             mService = binder.getService();
             mService.setSession(session);
-             mService.setDeviceID(Pushbots.sharedInstance().regID());
+            mService.setDeviceID(Pushbots.sharedInstance().regID());
             mBound = true;
 
         }
@@ -150,7 +150,7 @@ public class Main extends FragmentActivity {
 
     public void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-
+        
 
         courseList = new ArrayList<String>();
         SharedPreferences pref = getSharedPreferences("locations", 0);
