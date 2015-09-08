@@ -137,15 +137,13 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
         Log.v("Service", "Connecting Socket..");
 
         // set up socket connection
-        if (socket == null || !socket.connected()){
-            try {
-                String url = "http://protected-dawn-4244.herokuapp.com" + "?token=" + session.getToken();
-                Log.v("socket url", url);
-                IO.Options options = new IO.Options();
-                if(socket == null){
-                    options.forceNew = true;
-                }
 
+        try {
+            String url = "http://protected-dawn-4244.herokuapp.com" + "?token=" + session.getToken();
+            Log.v("socket url", url);
+            if(socket == null){
+                IO.Options options = new IO.Options();
+                options.forceNew = true;
 
                 socket = IO.socket(url, options);
                 // create listeners
@@ -165,13 +163,16 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 socket.on("startSession", startSession);
                 socket.on("sessionEnded", sessionEnded);
                 socket.on(Socket.EVENT_DISCONNECT, reconnect);
-//                socket.on(Socket.EVENT_CONNECT, sendDevID);
-                socket.connect();
-
-            } catch (URISyntaxException e){
-                Log.e("Bad URI", e.getMessage());
             }
+
+
+//                socket.on(Socket.EVENT_CONNECT, sendDevID);
+            socket.connect();
+
+        } catch (URISyntaxException e){
+            Log.e("Bad URI", e.getMessage());
         }
+
 
 
     }
@@ -363,6 +364,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     public void addMessage(MessageObject msg){
        Log.v("Storing Message", msg+"");
        conversation.add(msg);
+       Log.v("Conversations", conversation.toString());
     }
 
 
@@ -447,6 +449,12 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     }
 
     public void setDeviceID(String id){
+
+        if(socket == null || !socket.connected()){
+            Log.v("SIO", "socket null");
+            connectSocket();
+        }
+
         if(!id.equals(deviceID)){
             deviceID = id;
             JSONObject broadcastInfo = new JSONObject();
@@ -565,7 +573,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             messageData.put("senderID", senderID);
             messageData.put("recipID", recipID);
             messageData.put("message", message);
-            Log.v("Emitting..", "Message");
+            Log.v("Emitting..", "Message: " + message);
             socket.emit("message" , messageData);
 
         }catch(JSONException e){
@@ -919,7 +927,6 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                     intent.putExtra("user", grappledUser);
                     intent.putExtra("place", data.getString("place"));
                     clientBroadcast(intent);
-
                 }else{
                     // get the meeting point and send a notification
                     meetingPoint = findMeetingSpot(data.getString("place"));

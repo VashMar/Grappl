@@ -24,14 +24,14 @@ public class App extends Application{
     public void onCreate(){
         super.onCreate();
 
-        // Create default options which will be used for every
-        //  displayImage(...) call if no options will be passed to this method
-        DisplayImageOptions displayimageOptions = new DisplayImageOptions.Builder().cacheInMemory(true).cacheOnDisk(true).build();
-
-        // Create global configuration and initialize ImageLoader with this config
-        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).defaultDisplayImageOptions(displayimageOptions)
-        .build();
-        ImageLoader.getInstance().init(config);
+//        // Create default options which will be used for every
+//        //  displayImage(...) call if no options will be passed to this method
+//        DisplayImageOptions displayimageOptions = new DisplayImageOptions.Builder().cacheInMemory(true).cacheOnDisk(true).build();
+//
+//        // Create global configuration and initialize ImageLoader with this config
+//        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).defaultDisplayImageOptions(displayimageOptions)
+//        .build();
+//        ImageLoader.getInstance().init(config);
 
 
         // adds roboto font

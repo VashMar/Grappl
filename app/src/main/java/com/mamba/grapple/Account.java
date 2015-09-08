@@ -43,9 +43,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.amazonaws.auth.CognitoCachingCredentialsProvider;
-import com.amazonaws.mobileconnectors.s3.transfermanager.TransferManager;
-import com.amazonaws.mobileconnectors.s3.transfermanager.TransferProgress;
-import com.amazonaws.mobileconnectors.s3.transfermanager.Upload;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
@@ -72,7 +69,6 @@ public class Account extends Activity {
 
     // Amazon s3 related
     CognitoCachingCredentialsProvider credentialsProvider;
-//    TransferManager transferManager;
     TransferUtility transferUtility;
     TransferObserver observer;
 
@@ -181,7 +177,7 @@ public class Account extends Activity {
                 Regions.US_EAST_1 // Region
         );
 
-//        transferManager = new TransferManager(credentialsProvider);
+
         AmazonS3Client s3Client  = new AmazonS3Client(credentialsProvider);
         transferUtility = new TransferUtility(s3Client, getApplicationContext());
 

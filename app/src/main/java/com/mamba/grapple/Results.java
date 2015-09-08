@@ -91,7 +91,6 @@ public class Results extends Activity {
                     Bitmap bitmap = ((BitmapDrawable)profPic.getDrawable()).getBitmap();
                     picManager.storeImage(bitmap, selectedTutor.getPicKey());
 
-
                     // takes the user out of tutor mode
                     currentUser.tutorOff();
                     session.saveUser(currentUser);
@@ -99,7 +98,6 @@ public class Results extends Activity {
                     // transition to specific tutors page
                     Intent intent = new Intent(Results.this, Meetup.class);
                     intent.putExtra("otherUser", selectedTutor);
-                    intent.putExtra("userPic", bitmap);
                     startActivity(intent);
                 }
                 }

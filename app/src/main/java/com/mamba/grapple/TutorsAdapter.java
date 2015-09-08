@@ -70,6 +70,8 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         if(tutor.hasProfilePic()){
             Log.v("Adapter", "Loading Tutor Pic..");
             Picasso.with(getContext()).load(tutor.getProfilePic()).into(tutorPic);
+        }else{
+            Log.v("Adapter", "Using default Pic..");
         }
 
 
@@ -122,7 +124,7 @@ public class TutorsAdapter extends ArrayAdapter<UserObject> {
         // handle AM or PM for availability end time and build the string
         if(endHr > 24){
             endStr = endHr - 24 + ":" + endMin + "AM";
-        }else if(endHr >= 12){
+        }else if(endHr > 12){
             endStr =  (endHr - 12 == 12) ? endHr - 12 + ":" + endStr + "AM" : endHr - 12 + ":" + endStr + "PM";
         }else{
             endStr = endHr + ":" + endStr + "AM";

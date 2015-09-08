@@ -271,8 +271,12 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
         if(currentUser.hasProfilePic()){
             Log.v("Profile Pic", "Loading..");
             Bitmap img  = picManager.getImage(currentUser.getPicKey());
-            tutorPic.setImageBitmap(img);
-            //Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(tutorPic);
+            if(img != null){
+                tutorPic.setImageBitmap(img);
+            }else{
+                Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(tutorPic);
+            }
+            
         }
 
         tutorName.setText(currentUser.getName());
@@ -321,7 +325,9 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     public void onPause(){
         super.onPause();
         Log.v("Waiting", "Out of View");
-        mService.outOfView();
+        if(mBound){
+            mService.outOfView();
+        }
     }
 
     @Override
@@ -332,7 +338,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
     }
 
     @Override
-    protected void onStop(){
+    protected void onStop() {
         super.onStop();
         // Unbind from the service
         if (mBound) {
