@@ -9,6 +9,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.media.Image;
 import android.os.CountDownTimer;
@@ -26,6 +27,7 @@ import android.widget.TextView;
 
 import com.github.lzyzsd.circleprogress.ArcProgress;
 import com.google.android.gms.maps.MapFragment;
+import com.squareup.picasso.Picasso;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -232,11 +234,23 @@ public class InSession extends Activity {
         currentUsername = (TextView) findViewById(R.id.current_username);
 
         if(otherUser.hasProfilePic()){
-            otherUserPic.setImageBitmap(picManager.getImage(otherUser.getPicKey()));
+            Bitmap img = picManager.getImage(otherUser.getPicKey());
+            if(img != null){
+                otherUserPic.setImageBitmap(img);
+            }else{
+                Picasso.with(getApplicationContext()).load(otherUser.getProfilePic()).into(otherUserPic);
+            }
+
         }
 
         if(currentUser.hasProfilePic()){
-            currentUserPic.setImageBitmap(picManager.getImage(currentUser.getPicKey()));
+            Bitmap img = picManager.getImage(currentUser.getPicKey());
+            if(img != null){
+                currentUserPic.setImageBitmap(img);
+            }else{
+                Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(currentUserPic);
+            }
+
         }
 
         otherUsername.setText(otherUser.firstName());
