@@ -276,7 +276,7 @@ public class Waiting extends FragmentActivity implements OnMapReadyCallback, Goo
             }else{
                 Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(tutorPic);
             }
-            
+
         }
 
         tutorName.setText(currentUser.getName());

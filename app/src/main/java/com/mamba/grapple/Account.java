@@ -123,7 +123,7 @@ public class Account extends Activity {
                 Log.v("responseType", responseType);
                 Log.v("Main Activity", "received multicast: " + responseType);
 
-                if (responseType.equals("updatedPic")) {
+                if(responseType.equals("updatedPic")) {
                     currentUser.setProfilePic(extras.getString("profilePic"));
                     updateUserSession();
                     Log.v("Profile Pic Updated", currentUser.getProfilePic());
@@ -155,11 +155,34 @@ public class Account extends Activity {
 
         username.setText(currentUser.getName());
         if(currentUser.hasProfilePic()){
-            profilePic.setImageBitmap(roundCornerImage(picManager.getImage(currentUser.getPicKey()), 20));
+            Bitmap img  = picManager.getImage(currentUser.getPicKey());
+            if(img != null){
+                profilePic.setImageBitmap(roundCornerImage(img , 20));
+            }else{
+                Picasso.with(getApplicationContext()).load(currentUser.getProfilePic()).into(new Target(){
+
+                    @Override
+                    public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                        profilePic.setImageBitmap(roundCornerImage(bitmap , 20));
+                    }
+
+                    @Override
+                    public void onBitmapFailed(Drawable errorDrawable) {
+
+                    }
+
+                    @Override
+                    public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+                    }
+                });
+            }
+
+
         }else{
             Drawable iconDrawable = getResources().getDrawable(R.drawable.user_icon_large);
             Bitmap defIcon = ((BitmapDrawable) iconDrawable).getBitmap();
-            profilePic.setImageBitmap(roundCornerImage(defIcon , 20));
+            profilePic.setImageBitmap(roundCornerImage(defIcon, 20));
         }
 
 
