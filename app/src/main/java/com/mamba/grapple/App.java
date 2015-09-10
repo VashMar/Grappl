@@ -6,23 +6,25 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.location.Location;
 import android.os.Bundle;
+import android.support.multidex.MultiDexApplication;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.nostra13.universalimageloader.core.DisplayImageOptions;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
+import com.crashlytics.android.Crashlytics;
 
+
+import io.fabric.sdk.android.Fabric;
 import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
 
 /**
  * Created by vash on 4/17/15.
  */
-public class App extends Application{
+public class App extends MultiDexApplication {
 
 
     public void onCreate(){
         super.onCreate();
+        Fabric.with(this, new Crashlytics());
 
 //        // Create default options which will be used for every
 //        //  displayImage(...) call if no options will be passed to this method

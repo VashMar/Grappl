@@ -72,6 +72,8 @@
         android:theme="@style/AppTheme" >
 
 
+
+
         <receiver
             android:name="com.pushbots.google.gcm.GCMBroadcastReceiver"
             android:permission="com.google.android.c2dm.permission.SEND" >
@@ -170,6 +172,10 @@
         <service
             android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
             android:enabled="true" />
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="f0ddd14209edd75749c8063d9773d02061c468fa" />
+
     </application>
 
 </manifest>

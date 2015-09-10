@@ -31,8 +31,6 @@ import android.widget.TabHost;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
 import com.pushbots.push.Pushbots;
 
 import java.lang.reflect.Type;
@@ -166,7 +164,7 @@ public class Main extends FragmentActivity {
         setContentView(R.layout.activity_main);
         Pushbots.sharedInstance().init(this);
         Pushbots.sharedInstance().setCustomHandler(customHandler.class);
-        context = getApplicationContext();
+        context = Main.this;
         session = new LoginManager(context);
         network = new NetworkUtil();
         mTabHost = (TabHost) findViewById(R.id.tabHost);
@@ -211,13 +209,12 @@ public class Main extends FragmentActivity {
             // notify user
 
             AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-            dialog.setMessage("GPS not enabled");
+            dialog.setMessage("We need to know your location!");
             dialog.setPositiveButton("Enable GPS?", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface paramDialogInterface, int paramInt) {
-                    // TODO Auto-generated method stub
                     Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                    context.startActivity(myIntent);
+                    startActivity(myIntent);
                     //get gps
                 }
             });

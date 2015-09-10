@@ -36,7 +36,6 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.nostra13.universalimageloader.core.ImageLoader;
 import com.pushbots.push.PBNotification;
 import com.pushbots.push.PBNotificationIntent;
 import com.pushbots.push.Pushbots;

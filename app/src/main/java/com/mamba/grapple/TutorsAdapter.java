@@ -13,9 +13,7 @@ import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.listener.SimpleImageLoadingListener;
-import com.nostra13.universalimageloader.utils.MemoryCacheUtils;
+
 import com.squareup.picasso.Picasso;
 
 import java.io.InputStream;
@@ -30,7 +28,6 @@ import java.util.Calendar;
 public class TutorsAdapter extends ArrayAdapter<UserObject> {
 
     private Location userLocation;
-    ImageLoader imageLoader;
 
 
 
