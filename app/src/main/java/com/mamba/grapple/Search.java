@@ -149,7 +149,11 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
             public void onClick(View v) {
                 Log.v("Search", "Search Selected");
                 if (((Main) getActivity()).network.getConnectivityStatus(getActivity().getApplicationContext()) != 0) {
-                    tutorSearch(v);
+                    if(((Main) getActivity()).gps_enabled && ((Main) getActivity()).network_enabled){
+                        tutorSearch(v);
+                    }else{
+                       ((Main) getActivity()).showGPSDialog();
+                    }
                 } else {
                     ((Main) getActivity()).noConnectionDialog();
                 }

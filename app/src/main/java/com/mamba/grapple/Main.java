@@ -70,6 +70,11 @@ public class Main extends FragmentActivity {
     ArrayList<String> courseList;
 
 
+    // gps check
+    boolean gps_enabled = false;
+    boolean network_enabled = false;
+
+
 
     // receiver intended for this activity
     private BroadcastReceiver mainReceiver = new BroadcastReceiver(){
@@ -191,43 +196,8 @@ public class Main extends FragmentActivity {
 
 //        session = new LoginManager(getApplicationContext());
 
-        LocationManager lm = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
-        boolean gps_enabled = false;
-        boolean network_enabled = false;
 
-        try {
-            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
-            Log.v("GPS Enabled", gps_enabled+"");
-        } catch(Exception ex) {}
 
-        try {
-            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-            Log.v("GPS Network", network_enabled+"");
-        } catch(Exception ex) {}
-
-        if(!gps_enabled && !network_enabled) {
-            // notify user
-
-            AlertDialog.Builder dialog = new AlertDialog.Builder(context);
-            dialog.setMessage("We need to know your location!");
-            dialog.setPositiveButton("Enable GPS?", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
-                    Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                    startActivity(myIntent);
-                    //get gps
-                }
-            });
-            dialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-
-                @Override
-                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
-                    // TODO Auto-generated method stub
-
-                }
-            });
-            dialog.show();
-        }
 
         // redirect to waiting activity from push notification
         Bundle extras = getIntent().getExtras();
@@ -260,6 +230,24 @@ public class Main extends FragmentActivity {
 
     protected void onResume(){
         super.onResume();
+
+        LocationManager lm = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
+
+        try {
+            gps_enabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            Log.v("GPS Enabled", gps_enabled+"");
+        } catch(Exception ex) {}
+
+        try {
+            network_enabled = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            Log.v("GPS Network", network_enabled+"");
+        } catch(Exception ex) {}
+
+        if(!gps_enabled && !network_enabled) {
+            // notify user
+           showGPSDialog();
+        }
+
 
     }
 
@@ -381,6 +369,32 @@ public class Main extends FragmentActivity {
     public void updateUserSession(){
         session.saveUser(currentUser);
         mService.setSession(session);
+    }
+
+    public void showGPSDialog(){
+
+            // notify user
+
+            AlertDialog.Builder dialog = new AlertDialog.Builder(context);
+            dialog.setMessage("We need to know your location!");
+            dialog.setPositiveButton("Enable GPS?", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                    Intent myIntent = new Intent( Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(myIntent);
+                    //get gps
+                }
+            });
+            dialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+
+                @Override
+                public void onClick(DialogInterface paramDialogInterface, int paramInt) {
+                    // TODO Auto-generated method stub
+
+                }
+            });
+            dialog.show();
+
     }
 
 
