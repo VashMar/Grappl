@@ -208,8 +208,14 @@ public class Account extends Activity {
         accountOpts.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // temporary logout testing
+
                 if(position == 0){
+                    Intent paymentIntent = new Intent(Account.this, Payment.class);
+                    startActivity(paymentIntent);
+                }
+
+                // temporary logout testing
+                if(position == 1){
                     Intent logoffIntent = new Intent(Account.this, SignIn.class);
                     session.logout();
                     mService.endConnection();

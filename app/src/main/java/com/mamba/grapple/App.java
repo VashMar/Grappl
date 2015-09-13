@@ -1,17 +1,13 @@
 package com.mamba.grapple;
 
 import android.app.Activity;
-import android.app.Application;
-import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.location.Location;
 import android.os.Bundle;
 import android.support.multidex.MultiDexApplication;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.util.Log;
 
 import com.crashlytics.android.Crashlytics;
-
+import com.amazonaws.mobileconnectors.amazonmobileanalytics.*;
 
 import io.fabric.sdk.android.Fabric;
 import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
@@ -21,19 +17,22 @@ import uk.co.chrisjenx.calligraphy.CalligraphyConfig;
  */
 public class App extends MultiDexApplication {
 
+    private static MobileAnalyticsManager analytics;
 
     public void onCreate(){
         super.onCreate();
         Fabric.with(this, new Crashlytics());
 
-//        // Create default options which will be used for every
-//        //  displayImage(...) call if no options will be passed to this method
-//        DisplayImageOptions displayimageOptions = new DisplayImageOptions.Builder().cacheInMemory(true).cacheOnDisk(true).build();
-//
-//        // Create global configuration and initialize ImageLoader with this config
-//        ImageLoaderConfiguration config = new ImageLoaderConfiguration.Builder(this).defaultDisplayImageOptions(displayimageOptions)
-//        .build();
-//        ImageLoader.getInstance().init(config);
+
+        try {
+            analytics = MobileAnalyticsManager.getOrCreateInstance(
+                    this.getApplicationContext(),
+                    "38b7a43f4d6c46c09badab0dd4f48219", //Amazon Mobile Analytics App ID
+                    "us-east-1:6220c0ee-cc17-4a18-a095-30433b5f0ca4" //Amazon Cognito Identity Pool ID
+            );
+        } catch(InitializationException ex) {
+            Log.e(this.getClass().getName(), "Failed to initialize Amazon Mobile Analytics", ex);
+        }
 
 
         // adds roboto font
@@ -62,12 +61,19 @@ public class App extends MultiDexApplication {
 
             @Override
             public void onActivityResumed(Activity activity) {
-
+                Log.v("App", "Activity Resumed " + activity.getLocalClassName());
+                if(analytics != null) {
+                    analytics.getSessionClient().resumeSession();
+                }
             }
 
             @Override
             public void onActivityPaused(Activity activity) {
-
+                Log.v("App", "Activity Paused " + activity.getLocalClassName());
+                if(analytics != null) {
+                    analytics.getSessionClient().pauseSession();
+                    analytics.getEventClient().submitEvents();
+                }
             }
 
             @Override
@@ -90,6 +96,8 @@ public class App extends MultiDexApplication {
 
 
     }
+
+
 
 
 }

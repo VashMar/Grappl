@@ -17,6 +17,7 @@
     <string name="title_activity_meetup">Meetup</string>
     <string name="title_activity_presession">PreSession</string>
     <string name="title_activity_insession">Session in Progress..</string>
+    <string name="title_activity_payment">Payment</string>
     <string name="title_activity_chat">Chat</string>
 
 
@@ -42,10 +43,12 @@
     </string-array>
 
     <string-array name="account_options">
+        <item>Payment Settings</item>
         <item>Logout</item>
 
 
     </string-array>
+
 
 
 

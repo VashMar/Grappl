@@ -1,0 +1,40 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context="com.mamba.grapple.Payment">
+
+
+    <com.devmarvel.creditcardentry.library.CreditCardForm
+        android:id="@+id/credit_card_form"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:helper_text_color="@color/accent_blue"
+        app:include_exp="true"
+        app:include_security="true"
+        app:include_helper="true"
+        app:include_zip="true"/>
+
+
+
+
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Scan Card"
+        android:id="@+id/search_button"
+        android:layout_gravity="center_horizontal|bottom"
+        android:background="@color/theme"
+        android:textColor="@color/white"
+        android:layout_below="@+id/credit_card_form"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:onClick="onScanPress"
+        />
+
+</RelativeLayout>

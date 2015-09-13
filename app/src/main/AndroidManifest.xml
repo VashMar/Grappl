@@ -21,12 +21,14 @@
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+
     <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
 
-    <permission android:name="com.mamba.grapple.permission.C2D_MESSAGE" android:protectionLevel="signature" />
+    <permission
+        android:name="com.mamba.grapple.permission.C2D_MESSAGE"
+        android:protectionLevel="signature" />
+
     <uses-permission android:name="com.mamba.grapple.permission.C2D_MESSAGE" />
-
-
 
     <!--
  To retrieve OAuth 2.0 tokens or invalidate tokens to disconnect a user. This disconnect
@@ -38,10 +40,11 @@
     <permission
         android:name="com.mamba.grapple.gps.permission.MAPS_RECEIVE"
         android:protectionLevel="signature" />
-    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES"/>
+
+    <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
     <uses-permission android:name="com.grapple.mamba.permission.MAPS_RECEIVE" />
 
-    <!-- Storage for Google Maps + Images  -->
+    <!-- Storage for Google Maps + Images -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <!-- to access GPS polling -->
@@ -54,15 +57,24 @@
         android:required="true" />
 
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-    android:maxSdkVersion="18" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="18" />
 
-    <!-- camera permissions  -->
+    <!-- camera permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
+
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
+    <uses-feature
+        android:name="android.hardware.camera.flash"
+        android:required="false" />
+
+    <!-- Permission to vibrate - recommended, allows vibration feedback on scan -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".App"
@@ -70,26 +82,24 @@
         android:icon="@drawable/launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
-
-
-
-
         <receiver
             android:name="com.pushbots.google.gcm.GCMBroadcastReceiver"
             android:permission="com.google.android.c2dm.permission.SEND" >
             <intent-filter>
+
                 <!-- Receives the actual messages. -->
                 <action android:name="com.google.android.c2dm.intent.RECEIVE" />
                 <!-- Receives the registration id. -->
                 <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+
                 <category android:name="com.mamba.grapple" />
             </intent-filter>
         </receiver>
-        <receiver android:name="com.mamba.grapple.customHandler" />
-        <!--<receiver android:name="com.pushbots.push.DefaultPushHandler" />-->
+        <receiver android:name=".customHandler" />
+        <!-- <receiver android:name="com.pushbots.push.DefaultPushHandler" /> -->
         <service android:name="com.pushbots.push.GCMIntentService" />
 
-        <!--<service android:name=".GcmIntentService" />-->
+        <!-- <service android:name=".GcmIntentService" /> -->
 
         <service android:name=".DBService" />
 
@@ -100,7 +110,6 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/maps_api_key" />
-
 
         <activity
             android:name=".Splash"
@@ -116,6 +125,11 @@
             android:name=".Account"
             android:exported="true"
             android:label="@string/title_activity_account" />
+
+        <activity
+            android:name=".Payment"
+            android:exported="true"
+            android:label="@string/title_activity_payment" />
         <activity
             android:name=".Results"
             android:exported="true"
@@ -124,7 +138,7 @@
             android:name=".Meetup"
             android:exported="true"
             android:label="@string/title_activity_meetup"
-            android:launchMode="singleTask"/>
+            android:launchMode="singleTask" />
         <activity
             android:name=".PreSession"
             android:exported="true"
@@ -140,8 +154,8 @@
         <activity
             android:name=".Chat"
             android:exported="true"
-            android:launchMode="singleTask"
-            android:label="@string/title_activity_chat" />
+            android:label="@string/title_activity_chat"
+            android:launchMode="singleTask" />
         <activity
             android:name=".AddressList"
             android:exported="true"
@@ -160,21 +174,30 @@
             android:label="@string/title_activity_main" >
             <intent-filter>
                 <action android:name="com.mamba.grapple.MESSAGE" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
         <activity
             android:name=".Waiting"
-            android:launchMode="singleTask"
-            android:label="@string/title_activity_waiting" >
+            android:label="@string/title_activity_waiting"
+            android:launchMode="singleTask" >
         </activity>
+
+        <!-- Activities responsible for gathering payment info -->
+        <activity
+            android:name="io.card.payment.CardIOActivity"
+            android:configChanges="keyboardHidden|orientation" />
+        <activity android:name="io.card.payment.DataEntryActivity" />
 
         <service
             android:name="com.amazonaws.mobileconnectors.s3.transferutility.TransferService"
             android:enabled="true" />
+
         <meta-data
             android:name="io.fabric.ApiKey"
             android:value="f0ddd14209edd75749c8063d9773d02061c468fa" />
+
 
     </application>
 
