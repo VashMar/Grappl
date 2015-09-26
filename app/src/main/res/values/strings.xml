@@ -43,7 +43,7 @@
     </string-array>
 
     <string-array name="account_options">
-        <item>Payment Settings</item>
+        <item>Add Payment</item>
         <item>Logout</item>
 
 

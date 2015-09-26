@@ -1,20 +1,27 @@
 package com.mamba.grapple;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.Toast;
-import com.stripe.android.*;
 
+
+import com.braintreepayments.api.Braintree;
+import com.braintreepayments.api.dropin.BraintreePaymentActivity;
+import com.braintreepayments.api.dropin.Customization;
 import com.devmarvel.creditcardentry.library.CardValidCallback;
 import com.devmarvel.creditcardentry.library.CreditCard;
 import com.devmarvel.creditcardentry.library.CreditCardForm;
-import com.stripe.android.model.Card;
 
 
 import java.util.Calendar;
@@ -23,12 +30,41 @@ import io.card.payment.CardIOActivity;
 
 public class Payment extends Activity {
 
+
+    // service related variables
+    private boolean mBound = false;
+    DBService mService;
+
+    // current user data
+    LoginManager session;
+    UserObject currentUser;
+
     private LinearLayout linearLayout;
     private CreditCardForm form;
     CreditCardForm creditForm;
 
+    private Braintree braintree;
+    String btreeToken = "";
 
-    CardValidCallback cardValidCallback = new CardValidCallback() {
+
+    private ServiceConnection mConnection = new ServiceConnection(){
+        public void onServiceConnected(ComponentName className, IBinder service){
+            DBService.LocalBinder binder = (DBService.LocalBinder) service;
+            mService = binder.getService();
+            mService.setSession(session);
+            btreeToken = mService.btreeToken;
+            mBound = true;
+            Log.v("btreeToken", btreeToken);
+        }
+
+        public void onServiceDisconnected(ComponentName arg0){
+            mBound = false;
+        }
+    };
+
+
+
+    CardValidCallback cardValidCallback = new CardValidCallback(){
         @Override
         public void cardValid(CreditCard card) {
             Log.d("Payment", "valid card: " + card);
@@ -48,6 +84,36 @@ public class Payment extends Activity {
     }
 
 
+    // check login status every time the activity gets shown
+    protected void onStart(){
+        super.onStart();
+        Log.v("Main Activity", "Starting");
+        invalidateOptionsMenu();
+        session = new LoginManager(getApplicationContext());
+        if(session.isLoggedIn()){
+            currentUser = session.getCurrentUser();
+            Log.v("Search Login Status", currentUser.getName() +  " has been logged in");
+            startService(new Intent(this, DBService.class));
+            bindService(new Intent(this, DBService.class), mConnection, Context.BIND_AUTO_CREATE);
+        }
+    }
+
+
+
+    @Override
+    protected void onStop(){
+        super.onStop();
+        // Unbind from the service
+        if (mBound){
+            Log.v("Unbinding Service", "Search Activity");
+            unbindService(mConnection);
+            mBound = false;
+        }
+
+    }
+
+
+
     public void onScanPress(View v) {
         Intent scanIntent = new Intent(this, CardIOActivity.class);
 
@@ -59,6 +125,19 @@ public class Payment extends Activity {
         // MY_SCAN_REQUEST_CODE is arbitrary and is only used within this activity.
         startActivityForResult(scanIntent, 123);
     }
+
+
+    public void onBraintreeSubmit(View v) {
+        Intent intent = new Intent(getApplicationContext(), BraintreePaymentActivity.class);
+        intent.putExtra(BraintreePaymentActivity.EXTRA_CLIENT_TOKEN, btreeToken);
+
+        Customization customization = new Customization.CustomizationBuilder()
+                .submitButtonText("Store")
+                .build();
+        intent.putExtra(BraintreePaymentActivity.EXTRA_CUSTOMIZATION, customization);
+        startActivityForResult(intent, 100);
+    }
+
 
 
     @Override
@@ -74,8 +153,6 @@ public class Payment extends Activity {
                 resultDisplayStr = "Card Number: " + scanResult.cardNumber + "\n";
                 creditForm.setCardNumber(scanResult.cardNumber, true);
                 creditForm.getCreditCard();
-
-                stripeAuthenticate(scanResult.cardNumber, scanResult.expiryMonth, scanResult.expiryYear, scanResult.cvv);
 
 
                 // Do something with the raw number, e.g.:
@@ -145,12 +222,7 @@ public class Payment extends Activity {
     }
 
 
-    public void stripeAuthenticate(String cardNum, int expMonth, int expYear, String cvv){
-        Card card = new Card(cardNum, expMonth, expYear, cvv);
 
-        if(card.validateCard()){
-            
-        }
 
     }
-}
+

@@ -49,8 +49,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static com.google.android.gms.internal.zzhl.runOnUiThread;
+//
+//import static com.google.android.gms.internal.zzhl.runOnUiThread;
+import static com.google.android.gms.internal.zzhu.runOnUiThread;
 
 
 public class Broadcast extends Fragment {
@@ -333,8 +334,6 @@ public class Broadcast extends Fragment {
             //store the available string
             session.storeAvailString(availableString);
             session.storeSelectedCourses(selectedCourses);
-
-
 
         }else{
             // we can only broadcast if the tutor has a selected a meeting spot

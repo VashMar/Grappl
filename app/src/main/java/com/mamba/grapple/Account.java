@@ -49,6 +49,8 @@ import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.braintreepayments.api.dropin.BraintreePaymentActivity;
+import com.braintreepayments.api.dropin.Customization;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.squareup.picasso.MemoryPolicy;
@@ -72,9 +74,6 @@ public class Account extends Activity {
     TransferUtility transferUtility;
     TransferObserver observer;
 
-
-
-
     LoginManager session;
     UserObject currentUser;
     PicManager picManager;
@@ -88,6 +87,7 @@ public class Account extends Activity {
     TextView username;
     ImageView profilePic;
     ListView accountOpts;
+    String btreeToken = "";
 
     private Uri picUri;
     private Target mTarget = new Target() {
@@ -209,9 +209,17 @@ public class Account extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
+                // braintree submit
                 if(position == 0){
-                    Intent paymentIntent = new Intent(Account.this, Payment.class);
-                    startActivity(paymentIntent);
+                    Intent intent = new Intent(getApplicationContext(), BraintreePaymentActivity.class);
+                    intent.putExtra(BraintreePaymentActivity.EXTRA_CLIENT_TOKEN, btreeToken);
+
+                    Customization customization = new Customization.CustomizationBuilder()
+                            .actionBarTitle("Add Payment Method")
+                            .submitButtonText("Save")
+                            .build();
+                    intent.putExtra(BraintreePaymentActivity.EXTRA_CUSTOMIZATION, customization);
+                    startActivityForResult(intent, 100);
                 }
 
                 // temporary logout testing
@@ -226,7 +234,7 @@ public class Account extends Activity {
         });
     }
 
-    public void onStart() {
+    public void onStart(){
         super.onStart();
         if (session.isLoggedIn()){
             createService();
@@ -239,7 +247,7 @@ public class Account extends Activity {
     }
 
     @Override
-    protected void onStop() {
+    protected void onStop(){
         super.onStop();
         // Unbind from the service
         if (mBound) {
@@ -249,6 +257,8 @@ public class Account extends Activity {
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver(multicastReceiver);
     }
+
+
 
 
     private void selectImage() {
@@ -350,6 +360,15 @@ public class Account extends Activity {
 
         super.onActivityResult(requestCode, resultCode, data);
 
+        // braintree result
+        if (requestCode == 100) {
+            if (resultCode == BraintreePaymentActivity.RESULT_OK) {
+                String paymentMethodNonce = data.getStringExtra(BraintreePaymentActivity.EXTRA_PAYMENT_METHOD_NONCE);
+                mService.sendPaymentNonce(paymentMethodNonce);
+            }
+        }
+
+        // image result
         if (resultCode == RESULT_OK) {
             // handle taken picture
             if (requestCode == 1) {
@@ -399,40 +418,12 @@ public class Account extends Activity {
                             }
                         });
 
-//                        while(!upload.isDone()){
-//                            TransferProgress transferred = upload.getProgress();
-//                            Log.v("Percent Uploaded", transferred.getPercentTransferred()+"");
-//                        }
 
 
                     }
                 });
                 thread.start();
 
-//                Log.v("Uploading", ref);
-//                observer = transferUtility.upload("grappl-pics", ref, cropFile);
-//                observer.setTransferListener(new TransferListener() {
-//
-//                    @Override
-//                    public void onError(int id, Exception e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    @Override
-//                    public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
-//                        Log.v("Progress", "" + (bytesCurrent / bytesTotal) * 100);
-//
-//                    }
-//
-//                    @Override
-//                    public void onStateChanged(int id, TransferState newState) {
-//                        Log.v("Upload State", "" + newState);
-//                        if (newState.equals(TransferState.COMPLETED)) {
-//                            mService.updateProfilePic(ref);
-//                        }
-//                    }
-//                });
-//
 
 
 
@@ -493,6 +484,7 @@ public class Account extends Activity {
             mService = binder.getService();
             mService.setSession(session);
             mBound = true;
+            btreeToken = mService.btreeToken;
             mLastLocation = mService.getLocation();
         }
         public void onServiceDisconnected(ComponentName arg0) {

@@ -93,6 +93,8 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
     Location mCurrentLocation;
     String mLastUpdateTime;
 
+    String btreeToken;
+
     Activity boundActivity;
 
     LoginManager session;
@@ -149,6 +151,7 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
                 // create listeners
                 socket.on("message", message);
                 socket.on("locationUpdate", locationUpdate);
+                socket.on("paymentToken", storePaymentToken);
                 socket.on("meetingSuggestion", meetingSuggestion);
                 socket.on("startSessionRequest", startSessionRequest);
                 socket.on("grapple", grapple);
@@ -612,6 +615,18 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
 
 
 
+    public void sendPaymentNonce(String paymentNonce){
+        JSONObject data = new JSONObject();
+        try{
+            data.put("paymentNonce", paymentNonce);
+            socket.emit("addPayment", paymentNonce);
+        }catch(JSONException e){
+            e.printStackTrace();
+        }
+    }
+
+
+
 
     /****************************************************************************** Socket Listeners *********************************************************************/
 
@@ -651,6 +666,17 @@ public class DBService extends Service implements LocationListener, GoogleApiCli
             }
 
 
+
+        }
+    };
+
+
+    private Emitter.Listener storePaymentToken = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            String data = (String) args[0];
+            Log.v("Emit Recieved...", "paymentToken: " + data);
+            btreeToken = data;
 
         }
     };
