@@ -9,6 +9,10 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.media.Image;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,10 +22,21 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.w3c.dom.Text;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 
 
@@ -42,6 +57,15 @@ public class Results extends Activity {
     PicManager picManager;
 
     TutorsAdapter adapter;
+    ProgressBar spinner;
+
+
+    // Request Params
+    int distance = 0;
+    String course;
+    String currLat;
+    String currLong;
+
 
 
     @Override
@@ -61,6 +85,7 @@ public class Results extends Activity {
             // get the tutor list from previous activity
             tutorList = extras.getParcelableArrayList("tutorList");
             Log.v("tutorList", String.valueOf(tutorList));
+
 
             // populate the list view
             adapter = new TutorsAdapter(this, tutorList);
@@ -126,6 +151,18 @@ public class Results extends Activity {
             Log.v("Search Login Status", currentUser.getName() +  " has been logged in");
             createService();
         }
+
+        //  send the data in a http request
+        ConnectivityManager conMgr = (ConnectivityManager)
+        getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = conMgr.getActiveNetworkInfo();
+
+        if(networkInfo != null && networkInfo.isConnected()){
+            new TutorRetrieval().execute(URLS.TUTOR_PATH);
+        }else{
+            Log.v("no connection", "Failed to connect to internet");
+        }
+
     }
 
     protected void onPause(){
@@ -212,5 +249,124 @@ public class Results extends Activity {
             mBound = false;
         }
     };
+
+
+
+
+    // Uses AsyncTask to create a task away from the main UI thread. This task takes a
+    // URL string and uses it to create an HttpUrlConnection. Once the connection
+    // has been established, the AsyncTask downloads the contents of the webpage as
+    // an InputStream. Finally, the InputStream is converted into a string, which is
+    // displayed in the UI by the AsyncTask's onPostExecute method.
+    private class TutorRetrieval extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... urls) {
+
+            // params comes from the execute() call: params[0] is the url.
+            try {
+                return downloadUrl(urls[0]);
+
+            } catch (IOException e) {
+                return "Unable to retrieve web page. URL may be invalid.";
+            }
+        }
+
+        @Override
+        protected void onPreExecute(){
+            spinner.setVisibility(View.VISIBLE);
+        }
+
+        // onPostExecute displays the results of the AsyncTask.
+        @Override
+        protected void onPostExecute(String result){
+            Log.v("postResult", result);
+            Gson gson = new Gson();
+
+            ArrayList<UserObject> tutorList = new ArrayList<>();
+            Type resultType = new TypeToken<ArrayList<UserObject>>(){}.getType();
+            tutorList = gson.fromJson(result, resultType);
+
+            Log.v("tutorList", String.valueOf(tutorList.size()));
+
+            adapter = new TutorsAdapter(Results.this, tutorList);
+            listView.setAdapter(adapter);
+            adapter.notifyDataSetChanged();
+            spinner.setVisibility(View.GONE);
+            // if there are no tutors display the message
+            if(tutorList.size() < 1){
+                emptyMsg.setVisibility(View.VISIBLE);
+                sadface.setVisibility(View.VISIBLE);
+            }
+
+        }
+    }
+
+
+
+    // Given a URL, establishes an HttpUrlConnection and retrieves
+    // the web page content as a InputStream, which it returns as
+    // a string.
+    private String downloadUrl(String myurl) throws IOException {
+        InputStream is = null;
+        BufferedReader bufferedReader;
+        StringBuilder stringBuilder;
+        String line;
+
+        // add all tutor request data to params list and build url query
+        Uri.Builder builder = new Uri.Builder()
+                .appendQueryParameter("course", course )
+                .appendQueryParameter("distance", String.valueOf(distance))
+                .appendQueryParameter("lat", currLat )
+                .appendQueryParameter("lon", currLong);
+        String query = builder.build().getEncodedQuery();
+
+        myurl += "?" + query;           // append encoded query to URL
+        Log.v("queriedURL", myurl);
+        try {
+            Log.v("url", myurl);
+            URL url = new URL(myurl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            Log.v("url", String.valueOf(url));
+            conn.setReadTimeout(10000 /* milliseconds */);
+            conn.setConnectTimeout(15000 /* milliseconds */);
+            conn.setRequestMethod("GET");
+            conn.setDoInput(true);
+
+
+            // Starts the query
+            conn.connect();
+
+            int response = conn.getResponseCode();
+
+            Log.v("response", String.valueOf(response));
+
+            is = conn.getInputStream();
+
+            // Convert the InputStream into a JSON string
+            bufferedReader = new BufferedReader(new InputStreamReader(is));
+            stringBuilder = new StringBuilder();
+
+
+            while ((line = bufferedReader.readLine()) != null) {
+                stringBuilder.append(line + '\n');
+            }
+            String jsonString = stringBuilder.toString();
+            return jsonString;
+
+            // Makes sure that the InputStream is closed after the app is
+            // finished using it.
+        } finally {
+            if (is != null) {
+                is.close();
+            }
+        }
+    }
+
+
+
+
+
+
+
 
 }

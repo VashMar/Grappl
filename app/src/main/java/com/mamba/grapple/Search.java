@@ -73,9 +73,6 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
 
 
 
-    // current url path for tutor list retrieval
-    static final String TUTOR_PATH = "http://protected-dawn-4244.herokuapp.com/tutors";
-
 
     public Search(){
         // Required empty public constructor
@@ -216,7 +213,7 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
         NetworkInfo networkInfo = conMgr.getActiveNetworkInfo();
         // if there is a network connection create a request thread
         if(networkInfo != null && networkInfo.isConnected()){
-           new TutorRetrieval().execute(TUTOR_PATH);
+           new TutorRetrieval().execute(URLS.TUTOR_PATH);
         }else{
             Log.v("no connection", "Failed to connect to internet");
         }
@@ -319,6 +316,9 @@ public class Search extends Fragment implements ConnectionCallbacks, OnConnectio
             // send the tutorList along with login status on to the results activity
             intent.putParcelableArrayListExtra("tutorList", tutorList);
             intent.putExtra("course", course);
+            intent.putExtra("currLong", currLong);
+            intent.putExtra("currLat", currLat);
+            intent.putExtra("distance", distance);
             startActivity(intent);
             spinner.setVisibility(View.GONE);
         }
